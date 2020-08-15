@@ -63,12 +63,11 @@ namespace KG
 		std::vector<SortedPoint*> sortedPoints;
 		
 		//Generate data structures from input data
-		uint32_t previousPointIndex = 0;
 		for(const Outline &outline : polygon.outlines)
 		//const Outline &outline = polygon.outlines[0];
 		{
 			SortedPoint *firstVertex = nullptr;
-			uint32_t pointIndex = 0;
+			SortedPoint *currentVertex = nullptr;
 			Edge *edge = new Edge();
 			edge->triangleCount = 1; //Start outlines with a count of 1, to later have a count of 2 and be skipped without having to check if they are part of the outline
 			for(const Vector2 &point : outline.points)
@@ -76,11 +75,10 @@ namespace KG
 				//Skip duplicated points (There could also still be douplicates that aren't directly connected, should be much less likely though)
 				if(firstVertex)
 				{
-					float diffX = point.x - sortedPoints[previousPointIndex]->point.x;
-					float diffY = point.y - sortedPoints[previousPointIndex]->point.y;
+					float diffX = point.x - currentVertex->point.x;
+					float diffY = point.y - currentVertex->point.y;
 					if(std::abs(diffX) < std::numeric_limits<float>::epsilon() && std::abs(diffY) < std::numeric_limits<float>::epsilon())
 					{
-						pointIndex += 1;
 						continue;
 					}
 					
@@ -88,22 +86,19 @@ namespace KG
 					diffY = point.y - firstVertex->point.y;
 					if(std::abs(diffX) < std::numeric_limits<float>::epsilon() && std::abs(diffY) < std::numeric_limits<float>::epsilon())
 					{
-						pointIndex += 1;
 						continue;
 					}
 				}
 				
 				//Create sorted points and edges
-				SortedPoint *sortedPoint = new SortedPoint();
-				sortedPoint->vertexIndex = sortedPoints.size();
-				sortedPoint->point = point;
-				sortedPoints.push_back(sortedPoint);
-				
-				previousPointIndex = sortedPoints.size()-1; //Needs to be stored here, cause the next method may add new points to end of the list, but those are not possible duplicates
+				currentVertex = new SortedPoint();
+				currentVertex->vertexIndex = 0;
+				currentVertex->point = point;
+				sortedPoints.push_back(currentVertex);
 				
 				if(firstVertex)
 				{
-					edge->sortedPoints[1] = sortedPoint;
+					edge->sortedPoints[1] = currentVertex;
 					AddEdgeToEdgeListHandlingCrossings(edge, edges, sortedPoints);
 					
 					edge = new Edge();
@@ -111,11 +106,9 @@ namespace KG
 				}
 				else
 				{
-					firstVertex = sortedPoint;
+					firstVertex = currentVertex;
 				}
-				edge->sortedPoints[0] = sortedPoint;
-				
-				pointIndex += 1;
+				edge->sortedPoints[0] = currentVertex;
 			}
 			
 			//Close outline by connecting last vertex to first
@@ -127,8 +120,11 @@ namespace KG
 		}
 		
 		//Create vertices from point list
+		uint32_t vertexIndex = 0;
 		for(SortedPoint *sortedPoint : sortedPoints)
 		{
+			sortedPoint->vertexIndex = vertexIndex++;
+			
 			//Create vertices
 			mesh.vertices.push_back(sortedPoint->point.x);
 			mesh.vertices.push_back(sortedPoint->point.y);
@@ -370,7 +366,7 @@ namespace KG
 			{
 				//Create a new vertex at the intersection point
 				SortedPoint *newPoint = new SortedPoint();
-				newPoint->vertexIndex = sortedPoints.size();
+				newPoint->vertexIndex = 0;
 				newPoint->point = getIntersectionPoint(edge->sortedPoints[0]->point, edge->sortedPoints[1]->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point);
 				sortedPoints.push_back(newPoint);
 				
