@@ -9,9 +9,18 @@
 
 #include "KGBruteForceTriangulator.h"
 #include <cmath>
+#include <limits>
 
 namespace KG
 {
+	int8_t onLineOther(const Vector2 &A, const Vector2 &B, const Vector2 &C)
+	{
+		double result = (B.x - A.x) * (C.y - A.y) - (B.y - A.y) * (C.x - A.x);
+		if(std::abs(result) < std::numeric_limits<double>::epsilon()) return 0;
+		if(result < 0) return -1;
+		return 1;
+	}
+
 	const TriangleMesh MeshGeneratorLoopBlinn::GetMeshForPathCollection(const PathCollection &paths)
 	{
 /*		for(const Path &path : paths.paths)
@@ -152,6 +161,11 @@ namespace KG
 		}*/
 
 		
+		uint32_t vertexIndex = 0;
+		TriangleMesh outsideMesh;
+		outsideMesh.features.push_back(TriangleMesh::VertexFeaturePosition);
+		outsideMesh.features.push_back(TriangleMesh::VertexFeatureUV);
+		
 		BruteForceTriangulator::Polygon polygon;
 		
 		for(const Path &path : paths.paths)
@@ -161,21 +175,116 @@ namespace KG
 			bool isNotFirstSegment = false;
 			for(const PathSegment &segment : path.segments)
 			{
-				for(const Vector2 point : segment.controlPoints)
+				if(segment.type == PathSegment::TypeBezierQuadratic)
 				{
+					Vector2 BA;
+					BA.x = segment.controlPoints[2].x - segment.controlPoints[0].x;
+					BA.y = segment.controlPoints[2].y - segment.controlPoints[0].y;
+					
+					Vector2 CA;
+					CA.x = segment.controlPoints[1].x - segment.controlPoints[0].x;
+					CA.y = segment.controlPoints[1].y - segment.controlPoints[0].y;
+					
+					Vector2 CB;
+					CB.x = segment.controlPoints[1].x - segment.controlPoints[2].x;
+					CB.y = segment.controlPoints[1].y - segment.controlPoints[2].y;
+					
+					bool needsStartPoint = !isNotFirstSegment;
+					bool needsControlPoint = true;
+					bool needsEndPoint = true;
+					if(BA.GetDotProduct(BA) < std::numeric_limits<double>::epsilon() || CB.GetDotProduct(CB) < std::numeric_limits<double>::epsilon())
+					{
+						needsControlPoint = false;
+					}
+					
+					if(CA.GetDotProduct(CA) < std::numeric_limits<double>::epsilon())
+					{
+						needsEndPoint = false;
+						needsControlPoint = false;
+					}
+					
+					if(needsControlPoint)
+					{
+						int8_t onLineResult = onLineOther(segment.controlPoints[0], segment.controlPoints[2], segment.controlPoints[1]);
+						if(onLineResult == 0) needsControlPoint = false;
+						else if(onLineResult < 0)
+						{
+							//Is outside curve
+							needsControlPoint = false;
+							outsideMesh.vertices.push_back(segment.controlPoints[0].x);
+							outsideMesh.vertices.push_back(segment.controlPoints[0].y);
+							outsideMesh.vertices.push_back(0.0f);
+							outsideMesh.vertices.push_back(0.0f);
+							outsideMesh.vertices.push_back(1.0f);
+							
+							outsideMesh.vertices.push_back(segment.controlPoints[1].x);
+							outsideMesh.vertices.push_back(segment.controlPoints[1].y);
+							outsideMesh.vertices.push_back(0.5f);
+							outsideMesh.vertices.push_back(0.0f);
+							outsideMesh.vertices.push_back(1.0f);
+							
+							outsideMesh.vertices.push_back(segment.controlPoints[2].x);
+							outsideMesh.vertices.push_back(segment.controlPoints[2].y);
+							outsideMesh.vertices.push_back(1.0f);
+							outsideMesh.vertices.push_back(1.0f);
+							outsideMesh.vertices.push_back(1.0f);
+							
+							outsideMesh.indices.push_back(vertexIndex++);
+							outsideMesh.indices.push_back(vertexIndex++);
+							outsideMesh.indices.push_back(vertexIndex++);
+						}
+						else
+						{
+							//Is inside curve
+							outsideMesh.vertices.push_back(segment.controlPoints[0].x);
+							outsideMesh.vertices.push_back(segment.controlPoints[0].y);
+							outsideMesh.vertices.push_back(0.0f);
+							outsideMesh.vertices.push_back(0.0f);
+							outsideMesh.vertices.push_back(-1.0f);
+							
+							outsideMesh.vertices.push_back(segment.controlPoints[1].x);
+							outsideMesh.vertices.push_back(segment.controlPoints[1].y);
+							outsideMesh.vertices.push_back(0.5f);
+							outsideMesh.vertices.push_back(0.0f);
+							outsideMesh.vertices.push_back(-1.0f);
+							
+							outsideMesh.vertices.push_back(segment.controlPoints[2].x);
+							outsideMesh.vertices.push_back(segment.controlPoints[2].y);
+							outsideMesh.vertices.push_back(1.0f);
+							outsideMesh.vertices.push_back(1.0f);
+							outsideMesh.vertices.push_back(-1.0f);
+							
+							outsideMesh.indices.push_back(vertexIndex++);
+							outsideMesh.indices.push_back(vertexIndex++);
+							outsideMesh.indices.push_back(vertexIndex++);
+						}
+					}
+						
 					if(isNotFirstSegment)
 					{
 						isNotFirstSegment = true;
-						continue;
 					}
 					
-					outline.points.push_back(point);
+					if(needsStartPoint)
+						outline.points.push_back(segment.controlPoints[0]);
+					if(needsControlPoint)
+						outline.points.push_back(segment.controlPoints[1]);
+					if(needsEndPoint)
+						outline.points.push_back(segment.controlPoints[2]);
 				}
 			}
 			
 			polygon.outlines.push_back(outline);
 		}
 		
-		return BruteForceTriangulator::Triangulate(polygon);
+		TriangleMesh insideMesh = BruteForceTriangulator::Triangulate(polygon);
+		uint32_t vertexIndexOffset = insideMesh.vertices.size() / 5;
+		insideMesh.vertices.insert(insideMesh.vertices.end(), outsideMesh.vertices.begin(), outsideMesh.vertices.end());
+		for(uint32_t index : outsideMesh.indices)
+		{
+			insideMesh.indices.push_back(index + vertexIndexOffset);
+		}
+		
+		return insideMesh;
 	}
 }

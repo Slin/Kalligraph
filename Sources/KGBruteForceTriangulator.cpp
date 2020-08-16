@@ -132,7 +132,7 @@ namespace KG
 			
 			mesh.vertices.push_back(1.0f);
 			mesh.vertices.push_back(0.0f);
-			mesh.vertices.push_back(0.0f);
+			mesh.vertices.push_back(-1.0f);
 		}
 		
 		//Brute force the triangles
