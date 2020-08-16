@@ -17,24 +17,24 @@ namespace KG
 	class Vector2
 	{
 	public:
-		float x;
-		float y;
+		double x;
+		double y;
 		
-		float GetDotProduct(const Vector2 &other) const;
+		double GetDotProduct(const Vector2 &other) const;
 		Vector3 GetCrossProductSimplified(const Vector2 &other) const;
-		float GetDotProductSimplified(const Vector3 &other) const;
+		double GetDotProductSimplified(const Vector3 &other) const;
 	};
 
 	class Vector3
 	{
 	public:
-		float x;
-		float y;
-		float z;
+		double x;
+		double y;
+		double z;
 		
 		Vector3 GetCrossProduct(const Vector3 &other) const;
-		float GetDotProduct(const Vector3 &other) const;
-		float GetDotProductSimplified(const Vector2 &other) const;
+		double GetDotProduct(const Vector3 &other) const;
+		double GetDotProductSimplified(const Vector2 &other) const;
 	};
 
 	class PathSegment

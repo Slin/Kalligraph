@@ -24,29 +24,29 @@ namespace KG
 
 	int8_t onLine(const Vector2 &p, const Vector2 &q, const Vector2 &r)
 	{
-		float result = (r.x - q.x) * (p.y - q.y) - (r.y - q.y) * (p.x - q.x);
-		if(std::abs(result) < std::numeric_limits<float>::epsilon()*0.1) return 0;
+		double result = (r.x - q.x) * (p.y - q.y) - (r.y - q.y) * (p.x - q.x);
+		if(std::abs(result) < std::numeric_limits<double>::epsilon()) return 0;
 		if(result < 0) return -1;
 		return 1;
 	}
 
 	Vector2 getIntersectionPoint(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D)
 	{
-		float line1[3];
+		double line1[3];
 		line1[0] = A.y - B.y;
 		line1[1] = B.x - A.x;
 		line1[2] = -A.x * B.y + B.x * A.y;
 		
-		float line2[3];
+		double line2[3];
 		line2[0] = C.y - D.y;
 		line2[1] = D.x - C.x;
 		line2[2] = -C.x * D.y + D.x * C.y;
 		
-		float d = line1[0] * line2[1] - line1[1] * line2[0];
+		double d = line1[0] * line2[1] - line1[1] * line2[0];
 		if(d == 0) return Vector2{0.0f, 0.0f}; //Prevent dividing with 0, this function should only be called if there is a known intersection, so this shouldn't ever happen...
 		
-		float dx = line1[2] * line2[1] - line1[1] * line2[2];
-		float dy = line1[0] * line2[2] - line1[2] * line2[0];
+		double dx = line1[2] * line2[1] - line1[1] * line2[2];
+		double dy = line1[0] * line2[2] - line1[2] * line2[0];
 		
 		return Vector2{dx/d, dy/d};
 	}
@@ -59,12 +59,13 @@ namespace KG
 		mesh.features.push_back(TriangleMesh::VertexFeatureUV);
 		
 		std::vector<Edge*> edges;
-		edges.reserve(polygon.outlines[0].points.size() * 3);
-		std::vector<SortedPoint*> sortedPoints;
+		edges.reserve(polygon.outlines[0].points.size() * 3); //TODO: Should figure out the real number of edges, or at least as close as possible and just overallocate a bit for those added by intersections
+		std::vector<SortedPoint*> sortedPoints; //TODO: Should also be reserved to prevent expensive allocations later
+		
+		//TODO: Delete everything created with new if not needed anymore!
 		
 		//Generate data structures from input data
 		for(const Outline &outline : polygon.outlines)
-		//const Outline &outline = polygon.outlines[0];
 		{
 			SortedPoint *firstVertex = nullptr;
 			SortedPoint *currentVertex = nullptr;
@@ -75,16 +76,16 @@ namespace KG
 				//Skip duplicated points (There could also still be douplicates that aren't directly connected, should be much less likely though)
 				if(firstVertex)
 				{
-					float diffX = point.x - currentVertex->point.x;
-					float diffY = point.y - currentVertex->point.y;
-					if(std::abs(diffX) < std::numeric_limits<float>::epsilon() && std::abs(diffY) < std::numeric_limits<float>::epsilon())
+					double diffX = point.x - currentVertex->point.x;
+					double diffY = point.y - currentVertex->point.y;
+					if(std::abs(diffX) < std::numeric_limits<double>::epsilon() && std::abs(diffY) < std::numeric_limits<double>::epsilon())
 					{
 						continue;
 					}
 					
 					diffX = point.x - firstVertex->point.x;
 					diffY = point.y - firstVertex->point.y;
-					if(std::abs(diffX) < std::numeric_limits<float>::epsilon() && std::abs(diffY) < std::numeric_limits<float>::epsilon())
+					if(std::abs(diffX) < std::numeric_limits<double>::epsilon() && std::abs(diffY) < std::numeric_limits<double>::epsilon())
 					{
 						continue;
 					}
@@ -92,7 +93,7 @@ namespace KG
 				
 				//Create sorted points and edges
 				currentVertex = new SortedPoint();
-				currentVertex->vertexIndex = 0;
+				currentVertex->vertexIndex = 0; //The order of points can still change, the real value is assigned later
 				currentVertex->point = point;
 				sortedPoints.push_back(currentVertex);
 				
@@ -144,28 +145,13 @@ namespace KG
 			//Every inside edge needs to be part of two triangles, otherwise there is a hole. Can't be more than two either though
 			if(edge->triangleCount >= 2) continue;
 			
-			//TODO: Remove
-//			if(i >= 81)
-			{
-				std::cout << "edge " << i << ": " << edge->sortedPoints[0]->vertexIndex << " (" << edge->sortedPoints[0]->point.x << ", " << edge->sortedPoints[0]->point.y << ") - " << edge->sortedPoints[1]->vertexIndex << " (" << edge->sortedPoints[1]->point.x << ", " << edge->sortedPoints[1]->point.y << ")" << std::endl;
-			}
-			
-			int pointCounter = 0;
 			for(SortedPoint *sortedPoint : sortedPoints)
 			{
-				//if(pointCounter >= 68)
-				{
-					std::cout << "point " << pointCounter << ": (" << sortedPoint->point.x << ", " << sortedPoint->point.y << ")" << std::endl;
-				}
-				pointCounter += 1;
-				
 				if(sortedPoint == edge->sortedPoints[0] || sortedPoint == edge->sortedPoints[1]) continue;
 				
 				VisibilityResult visibilityResult = CanEdgeSeePoint(edge, sortedPoint, edges, originalEdgeCount);
 				if(!visibilityResult.isBlocked)
 				{
-					std::cout << "found point " << pointCounter-1 << std::endl;
-					
 					if(!visibilityResult.existingFirstEdge)
 					{
 						Edge *edge1 = new Edge();
@@ -214,6 +200,18 @@ namespace KG
 			mesh.indices.push_back(triangle->sortedPoints[0]->vertexIndex);
 			mesh.indices.push_back(triangle->sortedPoints[1]->vertexIndex);
 			mesh.indices.push_back(triangle->sortedPoints[2]->vertexIndex);
+			
+			delete triangle;
+		}
+		
+		for(Edge *edge : edges)
+		{
+			delete edge;
+		}
+		
+		for(SortedPoint *sortedPoint : sortedPoints)
+		{
+			delete sortedPoint;
 		}
 		
 		return mesh;
@@ -354,6 +352,7 @@ namespace KG
 
 	void BruteForceTriangulator::AddEdgeToEdgeListHandlingCrossings(Edge *edge, std::vector<Edge*> &edges, std::vector<SortedPoint *> &sortedPoints)
 	{
+		//Check for intersections with other edges
 		std::vector<SortedPoint *> newPoints;
 		for(int i = 0; i < edges.size(); i++)
 		{
@@ -369,8 +368,6 @@ namespace KG
 				newPoint->vertexIndex = 0;
 				newPoint->point = getIntersectionPoint(edge->sortedPoints[0]->point, edge->sortedPoints[1]->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point);
 				sortedPoints.push_back(newPoint);
-				
-				std::cout << "split point " << newPoint->vertexIndex << ": (" << newPoint->point.x << ", " << newPoint->point.y << "), inserted into edge " << i << std::endl;
 				
 				//Add to new point list, which will later be used to create the new edges
 				newPoints.push_back(newPoint);
@@ -424,7 +421,7 @@ namespace KG
 				edge->sortedPoints[0]->edges.push_back(edge);
 				edge->sortedPoints[1]->edges.push_back(edge);
 				
-				if(i < sortedPoints.size() - 1)
+				if(i < newPoints.size() - 1)
 				{
 					edge = new Edge();
 					edge->triangleCount = triangleCount;

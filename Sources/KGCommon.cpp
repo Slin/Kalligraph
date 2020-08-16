@@ -9,7 +9,7 @@
 
 namespace KG
 {
-	float Vector2::GetDotProduct(const Vector2 &other) const
+	double Vector2::GetDotProduct(const Vector2 &other) const
 	{
 		return x * other.x + y * other.y;
 	}
@@ -24,7 +24,7 @@ namespace KG
 	}
 		
 
-	float Vector2::GetDotProductSimplified(const Vector3 &other) const
+	double Vector2::GetDotProductSimplified(const Vector3 &other) const
 	{
 		return x * other.x + y * other.y + other.z;
 	}
@@ -38,12 +38,12 @@ namespace KG
 		return result;
 	}
 	
-	float Vector3::GetDotProduct(const Vector3 &other) const
+	double Vector3::GetDotProduct(const Vector3 &other) const
 	{
 		return x * other.x + y * other.y + z * other.z;
 	}
 	
-	float Vector3::GetDotProductSimplified(const Vector2 &other) const
+	double Vector3::GetDotProductSimplified(const Vector2 &other) const
 	{
 		return x * other.x + y * other.y + z;
 	}
