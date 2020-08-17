@@ -21,7 +21,7 @@ namespace KG
 		return 1;
 	}
 
-	const TriangleMesh MeshGeneratorLoopBlinn::GetMeshForPathCollection(const PathCollection &paths)
+	const TriangleMesh MeshGeneratorLoopBlinn::GetMeshForPathCollection(const PathCollection &paths, bool isCCW)
 	{
 /*		for(const Path &path : paths.paths)
 		{
@@ -175,6 +175,13 @@ namespace KG
 			bool isNotFirstSegment = false;
 			for(const PathSegment &segment : path.segments)
 			{
+				if(segment.type == PathSegment::TypeLine)
+				{
+					if(!isNotFirstSegment)
+						outline.points.push_back(segment.controlPoints[0]);
+					
+					outline.points.push_back(segment.controlPoints[1]);
+				}
 				if(segment.type == PathSegment::TypeBezierQuadratic)
 				{
 					Vector2 BA;
@@ -207,7 +214,7 @@ namespace KG
 					{
 						int8_t onLineResult = onLineOther(segment.controlPoints[0], segment.controlPoints[2], segment.controlPoints[1]);
 						if(onLineResult == 0) needsControlPoint = false;
-						else if(onLineResult < 0)
+						else if((onLineResult < 0 && isCCW) || (onLineResult > 0 && !isCCW))
 						{
 							//Is outside curve
 							needsControlPoint = false;
@@ -259,11 +266,6 @@ namespace KG
 							outsideMesh.indices.push_back(vertexIndex++);
 						}
 					}
-						
-					if(isNotFirstSegment)
-					{
-						isNotFirstSegment = true;
-					}
 					
 					if(needsStartPoint)
 						outline.points.push_back(segment.controlPoints[0]);
@@ -272,6 +274,8 @@ namespace KG
 					if(needsEndPoint)
 						outline.points.push_back(segment.controlPoints[2]);
 				}
+				
+				isNotFirstSegment = true;
 			}
 			
 			polygon.outlines.push_back(outline);

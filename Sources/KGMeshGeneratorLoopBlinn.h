@@ -15,7 +15,7 @@ namespace KG
 	class MeshGeneratorLoopBlinn
 	{
 	public:
-		static const TriangleMesh GetMeshForPathCollection(const PathCollection &paths);
+		static const TriangleMesh GetMeshForPathCollection(const PathCollection &paths, bool isCCW);
 	};
 }
 
