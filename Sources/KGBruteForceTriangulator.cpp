@@ -12,45 +12,6 @@
 
 namespace KG
 {
-	bool ccw(const Vector2 &A, const Vector2 &B, const Vector2 &C)
-	{
-		return (C.y-A.y) * (B.x-A.x) > (B.y-A.y) * (C.x-A.x);
-	}
-
-	bool doIntersect(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D)
-	{
-		return ccw(A,C,D) != ccw(B,C,D) && ccw(A,B,C) != ccw(A,B,D);
-	}
-
-	int8_t onLine(const Vector2 &p, const Vector2 &q, const Vector2 &r)
-	{
-		double result = (r.x - q.x) * (p.y - q.y) - (r.y - q.y) * (p.x - q.x);
-		if(std::abs(result) < std::numeric_limits<double>::epsilon()) return 0;
-		if(result < 0) return -1;
-		return 1;
-	}
-
-	Vector2 getIntersectionPoint(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D)
-	{
-		double line1[3];
-		line1[0] = A.y - B.y;
-		line1[1] = B.x - A.x;
-		line1[2] = -A.x * B.y + B.x * A.y;
-		
-		double line2[3];
-		line2[0] = C.y - D.y;
-		line2[1] = D.x - C.x;
-		line2[2] = -C.x * D.y + D.x * C.y;
-		
-		double d = line1[0] * line2[1] - line1[1] * line2[0];
-		if(d == 0) return Vector2{0.0f, 0.0f}; //Prevent dividing with 0, this function should only be called if there is a known intersection, so this shouldn't ever happen...
-		
-		double dx = line1[2] * line2[1] - line1[1] * line2[2];
-		double dy = line1[0] * line2[2] - line1[2] * line2[0];
-		
-		return Vector2{dx/d, dy/d};
-	}
-
 	TriangleMesh BruteForceTriangulator::Triangulate(const Polygon &polygon)
 	{
 		TriangleMesh mesh;
@@ -225,7 +186,7 @@ namespace KG
 		result.existingSecondEdge = nullptr;
 		
 		//Stop if points are all along one line
-		if(onLine(point->point, edge->sortedPoints[0]->point, edge->sortedPoints[1]->point) == 0)
+		if(Math::IsOnLine(edge->sortedPoints[0]->point, edge->sortedPoints[1]->point, point->point) == 0)
 		{
 			return result;
 		}
@@ -264,7 +225,7 @@ namespace KG
 							//If on the left of the left point of the edge, the check definitely hits it
 							insideCounter[i] += 1;
 						}
-						else if(onLine(midPointEdge[i], otherEdge->sortedPoints[higherPointIndex]->point, otherEdge->sortedPoints[lowerPointIndex]->point) == -1)
+						else if(Math::IsOnLine(otherEdge->sortedPoints[higherPointIndex]->point, otherEdge->sortedPoints[lowerPointIndex]->point, midPointEdge[i]) == -1)
 						{
 							insideCounter[i] += 1;
 						}
@@ -316,7 +277,7 @@ namespace KG
 						if(secondaryEdgePoint == otherPoint) secondaryEdgePoint = secondaryEdge->sortedPoints[1];
 						
 						//Return as blocking if the edges are colinear
-						if(onLine(point->point, otherPoint->point, secondaryEdgePoint->point) == 0)
+						if(Math::IsOnLine(otherPoint->point, secondaryEdgePoint->point, point->point) == 0)
 						{
 							return result;
 						}
@@ -327,12 +288,12 @@ namespace KG
 			}
 			
 			//Check if the new edges would intersect this edge
-			if(edge->sortedPoints[0] != otherEdge->sortedPoints[1] && edge->sortedPoints[0] != otherEdge->sortedPoints[0] && doIntersect(edge->sortedPoints[0]->point, point->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point))
+			if(edge->sortedPoints[0] != otherEdge->sortedPoints[1] && edge->sortedPoints[0] != otherEdge->sortedPoints[0] && Math::IsIntersecting(edge->sortedPoints[0]->point, point->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point))
 			{
 				return result;
 			}
 			
-			if(edge->sortedPoints[1] != otherEdge->sortedPoints[1] && edge->sortedPoints[1] != otherEdge->sortedPoints[0] && doIntersect(edge->sortedPoints[1]->point, point->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point))
+			if(edge->sortedPoints[1] != otherEdge->sortedPoints[1] && edge->sortedPoints[1] != otherEdge->sortedPoints[0] && Math::IsIntersecting(edge->sortedPoints[1]->point, point->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point))
 			{
 				return result;
 			}
@@ -361,12 +322,12 @@ namespace KG
 			//No intersection if edges share a point
 			if(edge->sortedPoints[0] == otherEdge->sortedPoints[0] || edge->sortedPoints[1] == otherEdge->sortedPoints[1] || edge->sortedPoints[0] == otherEdge->sortedPoints[1] || edge->sortedPoints[1] == otherEdge->sortedPoints[0]) continue;
 			
-			if(doIntersect(edge->sortedPoints[0]->point, edge->sortedPoints[1]->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point))
+			if(Math::IsIntersecting(edge->sortedPoints[0]->point, edge->sortedPoints[1]->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point))
 			{
 				//Create a new vertex at the intersection point
 				SortedPoint *newPoint = new SortedPoint();
 				newPoint->vertexIndex = 0;
-				newPoint->point = getIntersectionPoint(edge->sortedPoints[0]->point, edge->sortedPoints[1]->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point);
+				newPoint->point = Math::GetIntersectionPoint(edge->sortedPoints[0]->point, edge->sortedPoints[1]->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point);
 				sortedPoints.push_back(newPoint);
 				
 				//Add to new point list, which will later be used to create the new edges

@@ -12,14 +12,6 @@
 
 namespace KG
 {
-	int8_t onLineOther(const Vector2 &A, const Vector2 &B, const Vector2 &C)
-	{
-		double result = (B.x - A.x) * (C.y - A.y) - (B.y - A.y) * (C.x - A.x);
-		if(std::abs(result) < std::numeric_limits<double>::epsilon()) return 0;
-		if(result < 0) return -1;
-		return 1;
-	}
-
 	void MeshGeneratorLoopBlinn::AddLineSegmentToOutline(BruteForceTriangulator::Outline &outline, const PathSegment &segment)
 	{
 		Vector2 BA;
@@ -61,54 +53,40 @@ namespace KG
 		
 		if(needsControlPoint)
 		{
-			int8_t onLineResult = onLineOther(segment.controlPoints[0], segment.controlPoints[2], segment.controlPoints[1]);
+			int8_t onLineResult = Math::IsOnLine(segment.controlPoints[0], segment.controlPoints[2], segment.controlPoints[1]);
+			int8_t direction = 0;
 			if(onLineResult == 0) needsControlPoint = false;
 			else if((onLineResult < 0 && isCCW) || (onLineResult > 0 && !isCCW))
 			{
 				//Is outside curve
 				needsControlPoint = false;
-				outsideMesh.vertices.push_back(segment.controlPoints[0].x);
-				outsideMesh.vertices.push_back(segment.controlPoints[0].y);
-				outsideMesh.vertices.push_back(0.0f);
-				outsideMesh.vertices.push_back(0.0f);
-				outsideMesh.vertices.push_back(1.0f);
-				
-				outsideMesh.vertices.push_back(segment.controlPoints[1].x);
-				outsideMesh.vertices.push_back(segment.controlPoints[1].y);
-				outsideMesh.vertices.push_back(0.5f);
-				outsideMesh.vertices.push_back(0.0f);
-				outsideMesh.vertices.push_back(1.0f);
-				
-				outsideMesh.vertices.push_back(segment.controlPoints[2].x);
-				outsideMesh.vertices.push_back(segment.controlPoints[2].y);
-				outsideMesh.vertices.push_back(1.0f);
-				outsideMesh.vertices.push_back(1.0f);
-				outsideMesh.vertices.push_back(1.0f);
-				
-				outsideMesh.indices.push_back(outsideMesh.indices.size());
-				outsideMesh.indices.push_back(outsideMesh.indices.size());
-				outsideMesh.indices.push_back(outsideMesh.indices.size());
+				direction = 1;
 			}
 			else
 			{
 				//Is inside curve
+				direction = -1;
+			}
+			
+			if(direction != 0)
+			{
 				outsideMesh.vertices.push_back(segment.controlPoints[0].x);
 				outsideMesh.vertices.push_back(segment.controlPoints[0].y);
 				outsideMesh.vertices.push_back(0.0f);
 				outsideMesh.vertices.push_back(0.0f);
-				outsideMesh.vertices.push_back(-1.0f);
+				outsideMesh.vertices.push_back(direction);
 				
 				outsideMesh.vertices.push_back(segment.controlPoints[1].x);
 				outsideMesh.vertices.push_back(segment.controlPoints[1].y);
 				outsideMesh.vertices.push_back(0.5f);
 				outsideMesh.vertices.push_back(0.0f);
-				outsideMesh.vertices.push_back(-1.0f);
+				outsideMesh.vertices.push_back(direction);
 				
 				outsideMesh.vertices.push_back(segment.controlPoints[2].x);
 				outsideMesh.vertices.push_back(segment.controlPoints[2].y);
 				outsideMesh.vertices.push_back(1.0f);
 				outsideMesh.vertices.push_back(1.0f);
-				outsideMesh.vertices.push_back(-1.0f);
+				outsideMesh.vertices.push_back(direction);
 				
 				outsideMesh.indices.push_back(outsideMesh.indices.size());
 				outsideMesh.indices.push_back(outsideMesh.indices.size());
