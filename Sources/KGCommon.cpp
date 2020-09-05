@@ -53,16 +53,76 @@ namespace KG
 
 	bool Math::IsCCW(const Vector2 &A, const Vector2 &B, const Vector2 &C)
 	{
-		return (C.y-A.y) * (B.x-A.x) > (B.y-A.y) * (C.x-A.x);
+		//Returns true if ABC are a triangle with counter clockwise winding order like this:
+		//  C
+		// / \
+		//A---B
+		
+		//False for everything else (collinear or clockwise)
+		
+		return (B.x-A.x) * (C.y-A.y) > (B.y-A.y) * (C.x-A.x);
 	}
 
-	bool Math::IsIntersecting(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D)
+	bool Math::AreLineSegmentsIntersecting(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D)
 	{
+		//Two lines are intersecting if the points of one line are on opposite sides of the other line (second check)
+		//AND as this is handling line segments, the first check verifies that they are crossing within the segments
 		return IsCCW(A,C,D) != IsCCW(B,C,D) && IsCCW(A,B,C) != IsCCW(A,B,D);
+	}
+
+	bool Math::AreTrianglesIntersecting(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E, const Vector2 &F)
+	{
+		//If either side of a triangle has all points of the other triangle on the outside, they do not overlap
+		//If this isn't true for any side, they do overlap
+		
+		if(!IsCCW(A, B, C))
+		{
+			if(IsOnLine(C, A, D) >= 0 && IsOnLine(C, A, E) >= 0 && IsOnLine(C, A, F) >= 0) return false; //This one is most likely to be the separating axis
+			if(IsOnLine(A, B, D) >= 0 && IsOnLine(A, B, E) >= 0 && IsOnLine(A, B, F) >= 0) return false;
+			if(IsOnLine(B, C, D) >= 0 && IsOnLine(B, C, E) >= 0 && IsOnLine(B, C, F) >= 0) return false;
+		}
+		else
+		{
+			if(IsOnLine(C, A, D) <= 0 && IsOnLine(C, A, E) <= 0 && IsOnLine(C, A, F) <= 0) return false; //This one is most likely to be the separating axis
+			if(IsOnLine(A, B, D) <= 0 && IsOnLine(A, B, E) <= 0 && IsOnLine(A, B, F) <= 0) return false;
+			if(IsOnLine(B, C, D) <= 0 && IsOnLine(B, C, E) <= 0 && IsOnLine(B, C, F) <= 0) return false;
+		}
+		
+		if(!IsCCW(D, E, F))
+		{
+			if(IsOnLine(F, D, A) >= 0 && IsOnLine(F, D, B) >= 0 && IsOnLine(F, D, C) >= 0) return false; //This one is most likely to be the separating axis
+			if(IsOnLine(D, E, A) >= 0 && IsOnLine(D, E, B) >= 0 && IsOnLine(D, E, C) >= 0) return false;
+			if(IsOnLine(E, F, A) >= 0 && IsOnLine(E, F, B) >= 0 && IsOnLine(E, F, C) >= 0) return false;
+		}
+		else
+		{
+			if(IsOnLine(F, D, A) <= 0 && IsOnLine(F, D, B) <= 0 && IsOnLine(F, D, C) <= 0) return false; //This one is most likely to be the separating axis
+			if(IsOnLine(D, E, A) <= 0 && IsOnLine(D, E, B) <= 0 && IsOnLine(D, E, C) <= 0) return false;
+			if(IsOnLine(E, F, A) <= 0 && IsOnLine(E, F, B) <= 0 && IsOnLine(E, F, C) <= 0) return false;
+		}
+		
+		return true;
+	}
+
+	float Math::GetSquaredTriangleArea(const Vector2 &A, const Vector2 &B, const Vector2 &C)
+	{
+		//Get squared length of each side of the triangle
+		Vector2 AB = {A.x - B.x, A.y - B.y};
+		Vector2 BC = {B.x - C.x, B.y - C.y};
+		Vector2 CA = {C.x - A.x, C.y - A.y};
+		float a2 = AB.GetDotProduct(AB);
+		float b2 = BC.GetDotProduct(BC);
+		float c2 = CA.GetDotProduct(CA);
+		
+		//Use herons formula to get the squared triangle area
+		float result = 2.0f*a2*b2 + 2.0f*a2*c2 + 2.0f*b2*c2 - a2*a2 - b2*b2 - c2*c2;
+		return 0.125 * result;
 	}
 
 	int8_t Math::IsOnLine(const Vector2 &A, const Vector2 &B, const Vector2 &C)
 	{
+		//Same as IsCCW, but with an epsilon to add some tolerance
+		//returns 0 if C is on AC, 1 if it's CCW, -1 if it is CW
 		double result = (B.x - A.x) * (C.y - A.y) - (B.y - A.y) * (C.x - A.x);
 		if(std::abs(result) < std::numeric_limits<double>::epsilon()) return 0;
 		if(result < 0) return -1;

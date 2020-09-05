@@ -1,18 +1,18 @@
 //
-//  KGBruteForceTriangulator.cpp
+//  KGTriangulatorBruteForce.cpp
 //  Kalligraph
 //
 //  Copyright 2020 by Nils Daumann. All rights reserved.
 //
 
-#include "KGBruteForceTriangulator.h"
+#include "KGTriangulatorBruteForce.h"
 #include <cmath>
 #include <limits>
 #include <iostream>
 
 namespace KG
 {
-	TriangleMesh BruteForceTriangulator::Triangulate(const Polygon &polygon)
+	TriangleMesh TriangulatorBruteForce::Triangulate(const Polygon &polygon)
 	{
 		TriangleMesh mesh;
 		
@@ -61,7 +61,7 @@ namespace KG
 				if(firstVertex)
 				{
 					edge->sortedPoints[1] = currentVertex;
-					AddEdgeToEdgeListHandlingCrossings(edge, edges, sortedPoints);
+					AddEdgeToEdgeListHandlingIntersections(edge, edges, sortedPoints);
 					
 					edge = new Edge();
 					edge->triangleCount = 1; //Start outlines with a count of 1, to later have a count of 2 and be skipped without having to check if they are part of the outline
@@ -77,7 +77,7 @@ namespace KG
 			if(firstVertex)
 			{
 				edge->sortedPoints[1] = firstVertex;
-				AddEdgeToEdgeListHandlingCrossings(edge, edges, sortedPoints);
+				AddEdgeToEdgeListHandlingIntersections(edge, edges, sortedPoints);
 			}
 		}
 		
@@ -178,7 +178,7 @@ namespace KG
 		return mesh;
 	}
 
-	BruteForceTriangulator::VisibilityResult BruteForceTriangulator::CanEdgeSeePoint(Edge *edge, SortedPoint *point, const std::vector<Edge*> &edges, uint32_t outsideEdgeCount)
+	TriangulatorBruteForce::VisibilityResult TriangulatorBruteForce::CanEdgeSeePoint(Edge *edge, SortedPoint *point, const std::vector<Edge*> &edges, uint32_t outsideEdgeCount)
 	{
 		VisibilityResult result;
  		result.isBlocked = true;
@@ -288,12 +288,12 @@ namespace KG
 			}
 			
 			//Check if the new edges would intersect this edge
-			if(edge->sortedPoints[0] != otherEdge->sortedPoints[1] && edge->sortedPoints[0] != otherEdge->sortedPoints[0] && Math::IsIntersecting(edge->sortedPoints[0]->point, point->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point))
+			if(edge->sortedPoints[0] != otherEdge->sortedPoints[1] && edge->sortedPoints[0] != otherEdge->sortedPoints[0] && Math::AreLineSegmentsIntersecting(edge->sortedPoints[0]->point, point->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point))
 			{
 				return result;
 			}
 			
-			if(edge->sortedPoints[1] != otherEdge->sortedPoints[1] && edge->sortedPoints[1] != otherEdge->sortedPoints[0] && Math::IsIntersecting(edge->sortedPoints[1]->point, point->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point))
+			if(edge->sortedPoints[1] != otherEdge->sortedPoints[1] && edge->sortedPoints[1] != otherEdge->sortedPoints[0] && Math::AreLineSegmentsIntersecting(edge->sortedPoints[1]->point, point->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point))
 			{
 				return result;
 			}
@@ -311,7 +311,7 @@ namespace KG
 		return result;
 	}
 
-	void BruteForceTriangulator::AddEdgeToEdgeListHandlingCrossings(Edge *edge, std::vector<Edge*> &edges, std::vector<SortedPoint *> &sortedPoints)
+	void TriangulatorBruteForce::AddEdgeToEdgeListHandlingIntersections(Edge *edge, std::vector<Edge*> &edges, std::vector<SortedPoint *> &sortedPoints)
 	{
 		//Check for intersections with other edges
 		std::vector<SortedPoint *> newPoints;
@@ -322,7 +322,7 @@ namespace KG
 			//No intersection if edges share a point
 			if(edge->sortedPoints[0] == otherEdge->sortedPoints[0] || edge->sortedPoints[1] == otherEdge->sortedPoints[1] || edge->sortedPoints[0] == otherEdge->sortedPoints[1] || edge->sortedPoints[1] == otherEdge->sortedPoints[0]) continue;
 			
-			if(Math::IsIntersecting(edge->sortedPoints[0]->point, edge->sortedPoints[1]->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point))
+			if(Math::AreLineSegmentsIntersecting(edge->sortedPoints[0]->point, edge->sortedPoints[1]->point, otherEdge->sortedPoints[0]->point, otherEdge->sortedPoints[1]->point))
 			{
 				//Create a new vertex at the intersection point
 				SortedPoint *newPoint = new SortedPoint();

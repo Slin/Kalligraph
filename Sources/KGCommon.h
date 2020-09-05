@@ -42,6 +42,7 @@ namespace KG
 	public:
 		enum Type
 		{
+			TypePoint,
 			TypeLine,
 			TypeBezierQuadratic,
 			TypeBezierCubic,
@@ -83,8 +84,10 @@ namespace KG
 	{
 	public:
 		static bool IsCCW(const Vector2 &A, const Vector2 &B, const Vector2 &C);
-		static bool IsIntersecting(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D);
 		static int8_t IsOnLine(const Vector2 &A, const Vector2 &B, const Vector2 &C);
+		static bool AreLineSegmentsIntersecting(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D);
+		static bool AreTrianglesIntersecting(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E, const Vector2 &F);
+		static float GetSquaredTriangleArea(const Vector2 &A, const Vector2 &B, const Vector2 &C);
 		static Vector2 GetIntersectionPoint(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D);
 	};
 }

@@ -12,7 +12,7 @@
 
 namespace KG
 {
-	class BruteForceTriangulator
+	class TriangulatorBruteForce
 	{
 	public:
 		class SortedPoint;
@@ -61,7 +61,7 @@ namespace KG
 		
 		static TriangleMesh Triangulate(const Polygon &polygon);
 		static VisibilityResult CanEdgeSeePoint(Edge *edge, SortedPoint *point, const std::vector<Edge*> &edges, uint32_t outsideEdgeCount);
-		static void AddEdgeToEdgeListHandlingCrossings(Edge *edge, std::vector<Edge*> &edges, std::vector<SortedPoint *> &sortedPoints);
+		static void AddEdgeToEdgeListHandlingIntersections(Edge *edge, std::vector<Edge*> &edges, std::vector<SortedPoint *> &sortedPoints);
 	};
 }
 

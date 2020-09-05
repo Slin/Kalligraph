@@ -12,12 +12,12 @@ set(HEADERS )
 if(${KG_BUILD_LOOP_BLINN})
 	set(SOURCES ${SOURCES}
 		Sources/KGCommon.cpp
-		Sources/KGBruteForceTriangulator.cpp
+		Sources/KGTriangulatorBruteForce.cpp
 		Sources/KGMeshGeneratorLoopBlinn.cpp)
 
 	set(HEADERS ${HEADERS}
 		Sources/KGCommon.h
-		Sources/KGBruteForceTriangulator.h
+		Sources/KGTriangulatorBruteForce.h
 		Sources/KGMeshGeneratorLoopBlinn.h)
 endif()
 

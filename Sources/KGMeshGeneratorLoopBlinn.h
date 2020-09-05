@@ -9,7 +9,7 @@
 #define __KG_MeshGeneratorLoopBlinn_H__
 
 #include "KGCommon.h"
-#include "KGBruteForceTriangulator.h"
+#include "KGTriangulatorBruteForce.h"
 
 namespace KG
 {
@@ -19,9 +19,10 @@ namespace KG
 		static const TriangleMesh GetMeshForPathCollection(const PathCollection &paths, bool isCCW);
 		
 	private:
-		static void AddLineSegmentToOutline(BruteForceTriangulator::Outline &outline, const PathSegment &segment);
-		static void AddQuadraticSegmentToOutline(BruteForceTriangulator::Outline &outline, TriangleMesh &outsideMesh, const PathSegment &segment, const bool &isCCW);
-		static void AddCubicSegmentToOutline(BruteForceTriangulator::Outline &outline, TriangleMesh &outsideMesh, const PathSegment &segment, const bool &isCCW);
+		static PathSegment GetQuadraticSegmentForCubic(const PathSegment &segment);
+		static const PathCollection DowngradeCubicSegments(const PathCollection &paths);
+		static const PathCollection FilterDegenerateSegments(const PathCollection &paths);
+		static const PathCollection ResolveOverlaps(const PathCollection &paths);
 	};
 }
 
