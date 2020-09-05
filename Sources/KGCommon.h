@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <limits>
 
 namespace KG
 {
@@ -84,7 +85,7 @@ namespace KG
 	{
 	public:
 		static bool IsCCW(const Vector2 &A, const Vector2 &B, const Vector2 &C);
-		static int8_t IsOnLine(const Vector2 &A, const Vector2 &B, const Vector2 &C);
+		static int8_t IsOnLine(const Vector2 &A, const Vector2 &B, const Vector2 &C, double epsilon = std::numeric_limits<double>::epsilon());
 		static bool AreLineSegmentsIntersecting(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D);
 		static bool AreTrianglesIntersecting(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E, const Vector2 &F);
 		static float GetSquaredTriangleArea(const Vector2 &A, const Vector2 &B, const Vector2 &C);

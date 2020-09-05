@@ -61,7 +61,8 @@ namespace KG
 				if(firstVertex)
 				{
 					edge->sortedPoints[1] = currentVertex;
-					AddEdgeToEdgeListHandlingIntersections(edge, edges, sortedPoints);
+					//AddEdgeToEdgeListHandlingIntersections(edge, edges, sortedPoints);
+					edges.push_back(edge);
 					
 					edge = new Edge();
 					edge->triangleCount = 1; //Start outlines with a count of 1, to later have a count of 2 and be skipped without having to check if they are part of the outline
@@ -77,7 +78,8 @@ namespace KG
 			if(firstVertex)
 			{
 				edge->sortedPoints[1] = firstVertex;
-				AddEdgeToEdgeListHandlingIntersections(edge, edges, sortedPoints);
+				//AddEdgeToEdgeListHandlingIntersections(edge, edges, sortedPoints);
+				edges.push_back(edge);
 			}
 		}
 		

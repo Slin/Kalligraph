@@ -6,7 +6,6 @@
 //
 
 #include "KGCommon.h"
-#include <limits>
 #include <cmath>
 
 namespace KG
@@ -119,12 +118,12 @@ namespace KG
 		return 0.125 * result;
 	}
 
-	int8_t Math::IsOnLine(const Vector2 &A, const Vector2 &B, const Vector2 &C)
+	int8_t Math::IsOnLine(const Vector2 &A, const Vector2 &B, const Vector2 &C, double epsilon)
 	{
 		//Same as IsCCW, but with an epsilon to add some tolerance
 		//returns 0 if C is on AC, 1 if it's CCW, -1 if it is CW
 		double result = (B.x - A.x) * (C.y - A.y) - (B.y - A.y) * (C.x - A.x);
-		if(std::abs(result) < std::numeric_limits<double>::epsilon()) return 0;
+		if(std::abs(result) < epsilon) return 0;
 		if(result < 0) return -1;
 		return 1;
 	}
