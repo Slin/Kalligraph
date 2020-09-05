@@ -34,9 +34,10 @@ namespace KG
 			edge->triangleCount = 1; //Start outlines with a count of 1, to later have a count of 2 and be skipped without having to check if they are part of the outline
 			for(const Vector2 &point : outline.points)
 			{
-				//Skip duplicated points (There could also still be douplicates that aren't directly connected, should be much less likely though)
+				//Skip duplicated points (There could also still be duplicates that aren't directly connected, should be much less likely though)
 				if(firstVertex)
 				{
+					//Skip subsequent duplicated points
 					double diffX = point.x - currentVertex->point.x;
 					double diffY = point.y - currentVertex->point.y;
 					if(std::abs(diffX) < std::numeric_limits<double>::epsilon() && std::abs(diffY) < std::numeric_limits<double>::epsilon())
@@ -44,19 +45,37 @@ namespace KG
 						continue;
 					}
 					
+					//Skip duplicated points that are same as first
 					diffX = point.x - firstVertex->point.x;
 					diffY = point.y - firstVertex->point.y;
 					if(std::abs(diffX) < std::numeric_limits<double>::epsilon() && std::abs(diffY) < std::numeric_limits<double>::epsilon())
 					{
 						continue;
 					}
+					
+					//Check if point already exists somewhere else (this will be the case for self intersecting outlines, if interesections have been resolved before)
+					currentVertex = nullptr;
+					for(SortedPoint *sortedPoint : sortedPoints)
+					{
+						//Skip subsequent duplicated points
+						double diffX = point.x - sortedPoint->point.x;
+						double diffY = point.y - sortedPoint->point.y;
+						if(std::abs(diffX) < std::numeric_limits<double>::epsilon() && std::abs(diffY) < std::numeric_limits<double>::epsilon())
+						{
+							currentVertex = sortedPoint;
+							break;
+						}
+					}
 				}
 				
 				//Create sorted points and edges
-				currentVertex = new SortedPoint();
-				currentVertex->vertexIndex = 0; //The order of points can still change, the real value is assigned later
-				currentVertex->point = point;
-				sortedPoints.push_back(currentVertex);
+				if(!currentVertex)
+				{
+					currentVertex = new SortedPoint();
+					currentVertex->vertexIndex = 0; //The order of points can still change, the real value is assigned later
+					currentVertex->point = point;
+					sortedPoints.push_back(currentVertex);
+				}
 				
 				if(firstVertex)
 				{

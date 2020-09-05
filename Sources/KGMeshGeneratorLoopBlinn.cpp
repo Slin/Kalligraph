@@ -9,7 +9,6 @@
 
 #include <cmath>
 #include <limits>
-#include <iostream>
 
 namespace KG
 {
@@ -160,10 +159,11 @@ namespace KG
 		{
 			const PathSegment iteratedSegment = iteratedPathSegments[i];
 			
-			if(Math::AreLineSegmentsIntersecting(otherSegment.controlPoints[0], otherSegment.controlPoints[1], iteratedSegment.controlPoints[0], iteratedSegment.controlPoints[1]))
+			//Only intersect if they don't share a control point (these are all doubles, but an epsilon for the comparison should not be needed as they should be identical if shared)
+			if(otherSegment.controlPoints[0].x != iteratedSegment.controlPoints[0].x && otherSegment.controlPoints[0].x != iteratedSegment.controlPoints[1].x && otherSegment.controlPoints[1].x != iteratedSegment.controlPoints[0].x && otherSegment.controlPoints[1].x != iteratedSegment.controlPoints[1].x && otherSegment.controlPoints[0].y != iteratedSegment.controlPoints[0].y && otherSegment.controlPoints[0].y != iteratedSegment.controlPoints[1].y && otherSegment.controlPoints[1].y != iteratedSegment.controlPoints[0].y && otherSegment.controlPoints[1].y != iteratedSegment.controlPoints[1].y && Math::AreLineSegmentsIntersecting(otherSegment.controlPoints[0], otherSegment.controlPoints[1], iteratedSegment.controlPoints[0], iteratedSegment.controlPoints[1]))
 			{
-				otherPathSegments.pop_back(); //Remove the triangle that gets subdivided
-				iteratedPathSegments.pop_back(); //Remove the triangle that gets subdivided
+				otherPathSegments.pop_back(); //Remove the segment that gets split
+				iteratedPathSegments.erase(iteratedPathSegments.begin() + i); //Remove the segment that gets split
 				
 				Vector2 intersectionPoint = Math::GetIntersectionPoint(otherSegment.controlPoints[0], otherSegment.controlPoints[1], iteratedSegment.controlPoints[0], iteratedSegment.controlPoints[1]);
 				
@@ -179,13 +179,14 @@ namespace KG
 				subdividedSegment[1].controlPoints.push_back(otherSegment.controlPoints[1]);
 				otherPathSegments.push_back(subdividedSegment[1]);
 				
-				subdividedSegment[0].controlPoints.push_back(iteratedSegment.controlPoints[0]);
-				subdividedSegment[0].controlPoints.push_back(intersectionPoint);
-				iteratedPathSegments.push_back(subdividedSegment[0]);
+				subdividedSegment[0].controlPoints[0] = iteratedSegment.controlPoints[0];
+				subdividedSegment[0].controlPoints[1] = intersectionPoint;
+				iteratedPathSegments.insert(iteratedPathSegments.begin() + i, subdividedSegment[0]);
+				i += 1;
 				
-				subdividedSegment[1].controlPoints.push_back(intersectionPoint);
-				subdividedSegment[1].controlPoints.push_back(iteratedSegment.controlPoints[1]);
-				iteratedPathSegments.push_back(subdividedSegment[1]);
+				subdividedSegment[1].controlPoints[0] = intersectionPoint;
+				subdividedSegment[1].controlPoints[1] = iteratedSegment.controlPoints[1];
+				iteratedPathSegments.insert(iteratedPathSegments.begin() + i, subdividedSegment[1]);
 			}
 		}
 	}
@@ -278,7 +279,7 @@ namespace KG
 				{
 					//Subdivide iterated segment if it's bigger
 					
-					iteratedPathSegments.erase(iteratedPathSegments.begin() + i); //Remove the triangle that gets subdivided
+					iteratedPathSegments.erase(iteratedPathSegments.begin() + i); //Remove the segment that gets subdivided
 					PathSegment subdividedSegment[2];
 					
 					subdividedSegment[0].type = PathSegment::TypeBezierQuadratic;
@@ -314,10 +315,8 @@ namespace KG
 		for(const Path &path : paths.paths)
 		{
 			result.paths.push_back(Path());
-			int counter = 0;
 			for(const PathSegment &segment : path.segments)
 			{
-				std::cout << "handle segment: " << counter++ << std::endl;
 				if(segment.type == PathSegment::TypeBezierCubic)
 				{
 					//Cubics are currently not supported here and should have been converted in a previous step already.
