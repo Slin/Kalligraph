@@ -258,7 +258,7 @@ namespace KG
 				{
 					result.paths.back().segments.push_back(segment);
 				}
-				counter += 1;
+				//counter += 1;
 			}
 			
 			//If new path is empty, remove it
