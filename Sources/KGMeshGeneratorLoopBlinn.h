@@ -26,6 +26,8 @@ namespace KG
 	private:
 		static PathSegment GetQuadraticSegmentForCubic(const PathSegment &segment);
 		static void ResolveLineLineIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments);
+		static void ResolveQuadraticLineIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments);
+		static void ResolveQuadraticQuadraticIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments);
 		static void ResolveQuadraticQuadraticOverlap(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments);
 	};
 }

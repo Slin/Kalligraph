@@ -22,6 +22,7 @@ namespace KG
 		double y;
 		
 		double GetDotProduct(const Vector2 &other) const;
+		float GetCrossProduct(const Vector2 &other) const;
 		Vector3 GetCrossProductSimplified(const Vector2 &other) const;
 		double GetDotProductSimplified(const Vector3 &other) const;
 	};
@@ -90,6 +91,9 @@ namespace KG
 		static bool AreTrianglesIntersecting(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E, const Vector2 &F);
 		static float GetSquaredTriangleArea(const Vector2 &A, const Vector2 &B, const Vector2 &C);
 		static Vector2 GetIntersectionPoint(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D);
+		static bool IsQuadraticCurveIntersectingLineSegment(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E);
+		static std::vector<double> GetQuadraticCurveAndLineSegmentIntersectionCoefficients(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E);
+		static std::vector<double> GetQuadraticCurveAndQuadraticCurveIntersectionCoefficients(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E, const Vector2 &F);
 	};
 }
 

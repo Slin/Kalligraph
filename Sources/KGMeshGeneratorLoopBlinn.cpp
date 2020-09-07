@@ -191,6 +191,282 @@ namespace KG
 		}
 	}
 
+	//Checks if quadratic curve and line segment intersect and splits them if they do.
+	void MeshGeneratorLoopBlinn::ResolveQuadraticLineIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments)
+	{
+		const PathSegment otherSegment = otherPathSegments.back();
+		for(int i = 0; i < iteratedPathSegments.size(); i++)
+		{
+			const PathSegment iteratedSegment = iteratedPathSegments[i];
+			
+			const PathSegment &quadraticSegment = iteratedSegment.type == PathSegment::TypeBezierQuadratic?iteratedSegment : otherSegment;
+			const PathSegment &lineSegment = iteratedSegment.type == PathSegment::TypeBezierQuadratic?otherSegment : iteratedSegment;
+			
+			//Other than with line line intersection, there can be another intersection even if one of the control points is shared
+			std::vector<double> intersectionCoefficients = Math::GetQuadraticCurveAndLineSegmentIntersectionCoefficients(quadraticSegment.controlPoints[0], quadraticSegment.controlPoints[1], quadraticSegment.controlPoints[2], lineSegment.controlPoints[0], lineSegment.controlPoints[1]);
+			if(intersectionCoefficients.size() > 0)
+			{
+				bool hasTwoIntersections = intersectionCoefficients.size() > 1;
+				
+				otherPathSegments.pop_back(); //Remove the segment that gets split
+				iteratedPathSegments.erase(iteratedPathSegments.begin() + i); //Remove the segment that gets split
+				
+				//Calculate points by inserting t into squared curve equation
+				Vector2 intersectionPoints[2];
+				Vector2 controlPoints[3];
+				
+				double t = intersectionCoefficients[0];
+				double s = 1.0 - t;
+				
+				intersectionPoints[0].x = s * s * quadraticSegment.controlPoints[0].x + 2.0 * t * s * quadraticSegment.controlPoints[1].x + t * t * quadraticSegment.controlPoints[2].x;
+				intersectionPoints[0].y = s * s * quadraticSegment.controlPoints[0].y + 2.0 * t * s * quadraticSegment.controlPoints[1].y + t * t * quadraticSegment.controlPoints[2].y;
+				
+				controlPoints[0].x = s * quadraticSegment.controlPoints[0].x + t * quadraticSegment.controlPoints[1].x;
+				controlPoints[0].y = s * quadraticSegment.controlPoints[0].y + t * quadraticSegment.controlPoints[1].y;
+				
+				controlPoints[1].x = s * quadraticSegment.controlPoints[1].x + t * quadraticSegment.controlPoints[2].x;
+				controlPoints[1].y = s * quadraticSegment.controlPoints[1].y + t * quadraticSegment.controlPoints[2].y;
+				
+				if(hasTwoIntersections)
+				{
+					t = (intersectionCoefficients[1] - t) / (1.0 - t);
+					s = 1.0 - t;
+					
+					intersectionPoints[1].x = s * s * intersectionPoints[0].x + 2.0 * t * s * controlPoints[1].x + t * t * quadraticSegment.controlPoints[2].x;
+					intersectionPoints[1].y = s * s * intersectionPoints[0].y + 2.0 * t * s * controlPoints[1].y + t * t * quadraticSegment.controlPoints[2].y;
+					
+					controlPoints[2].x = s * controlPoints[1].x + t * quadraticSegment.controlPoints[2].x;
+					controlPoints[2].y = s * controlPoints[1].y + t * quadraticSegment.controlPoints[2].y;
+					
+					controlPoints[1].x = s * intersectionPoints[0].x + t * controlPoints[1].x;
+					controlPoints[1].y = s * intersectionPoints[0].y + t * controlPoints[1].y;
+				}
+				
+				//Order intersection points along the line segment
+				Vector2 lineIntersectionPoints[2];
+				if(!hasTwoIntersections)
+				{
+					lineIntersectionPoints[0] = intersectionPoints[0];
+				}
+				else
+				{
+					Vector2 BA;
+					BA.x = intersectionPoints[0].x - lineSegment.controlPoints[0].x;
+					BA.y = intersectionPoints[0].y - lineSegment.controlPoints[0].y;
+					
+					Vector2 CA;
+					CA.x = intersectionPoints[1].x - lineSegment.controlPoints[0].x;
+					CA.y = intersectionPoints[1].y - lineSegment.controlPoints[0].y;
+					
+					if(BA.GetDotProduct(BA) < CA.GetDotProduct(CA))
+					{
+						lineIntersectionPoints[0] = intersectionPoints[0];
+						lineIntersectionPoints[1] = intersectionPoints[1];
+					}
+					else
+					{
+						lineIntersectionPoints[0] = intersectionPoints[1];
+						lineIntersectionPoints[1] = intersectionPoints[0];
+					}
+				}
+				
+				//Put together the new segments
+				PathSegment subdividedSegment[6];
+				
+				//Quadratic segments
+				subdividedSegment[0].type = PathSegment::TypeBezierQuadratic;
+				subdividedSegment[0].controlPoints.push_back(quadraticSegment.controlPoints[0]);
+				subdividedSegment[0].controlPoints.push_back(controlPoints[0]);
+				subdividedSegment[0].controlPoints.push_back(intersectionPoints[0]);
+				
+				subdividedSegment[1].type = PathSegment::TypeBezierQuadratic;
+				subdividedSegment[1].controlPoints.push_back(intersectionPoints[0]);
+				subdividedSegment[1].controlPoints.push_back(controlPoints[1]);
+				subdividedSegment[1].controlPoints.push_back(hasTwoIntersections? intersectionPoints[1] : quadraticSegment.controlPoints[2]);
+				
+				if(hasTwoIntersections)
+				{
+					subdividedSegment[2].type = PathSegment::TypeBezierQuadratic;
+					subdividedSegment[2].controlPoints.push_back(intersectionPoints[1]);
+					subdividedSegment[2].controlPoints.push_back(controlPoints[2]);
+					subdividedSegment[2].controlPoints.push_back(quadraticSegment.controlPoints[2]);
+				}
+				
+				//Line segments
+				subdividedSegment[3].type = PathSegment::TypeLine;
+				subdividedSegment[3].controlPoints.push_back(lineSegment.controlPoints[0]);
+				subdividedSegment[3].controlPoints.push_back(lineIntersectionPoints[0]);
+				
+				subdividedSegment[4].type = PathSegment::TypeLine;
+				subdividedSegment[4].controlPoints.push_back(intersectionPoints[0]);
+				subdividedSegment[4].controlPoints.push_back(hasTwoIntersections? lineIntersectionPoints[1] : lineSegment.controlPoints[1]);
+				
+				if(hasTwoIntersections)
+				{
+					subdividedSegment[5].type = PathSegment::TypeLine;
+					subdividedSegment[5].controlPoints.push_back(lineIntersectionPoints[1]);
+					subdividedSegment[5].controlPoints.push_back(lineSegment.controlPoints[1]);
+				}
+				
+				//Insert new segments into the lists
+				if(otherSegment.type == PathSegment::TypeBezierQuadratic)
+				{
+					otherPathSegments.push_back(subdividedSegment[0]);
+					otherPathSegments.push_back(subdividedSegment[1]);
+					
+					iteratedPathSegments.insert(iteratedPathSegments.begin() + i++, subdividedSegment[3]);
+					iteratedPathSegments.insert(iteratedPathSegments.begin() + i, subdividedSegment[4]);
+					
+					if(hasTwoIntersections)
+					{
+						otherPathSegments.push_back(subdividedSegment[2]);
+						iteratedPathSegments.insert(iteratedPathSegments.begin() + ++i, subdividedSegment[5]);
+					}
+				}
+				else
+				{
+					otherPathSegments.push_back(subdividedSegment[3]);
+					otherPathSegments.push_back(subdividedSegment[4]);
+					
+					iteratedPathSegments.insert(iteratedPathSegments.begin() + i++, subdividedSegment[0]);
+					iteratedPathSegments.insert(iteratedPathSegments.begin() + i, subdividedSegment[1]);
+					
+					if(hasTwoIntersections)
+					{
+						otherPathSegments.push_back(subdividedSegment[5]);
+						iteratedPathSegments.insert(iteratedPathSegments.begin() + ++i, subdividedSegment[2]);
+					}
+				}
+			}
+		}
+	}
+
+
+	//Checks two quadratic curves intersect and splits them if they do.
+	void MeshGeneratorLoopBlinn::ResolveQuadraticQuadraticIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments)
+	{
+		const PathSegment otherSegment = otherPathSegments.back();
+		for(int r = 0; r < iteratedPathSegments.size(); r++)
+		{
+			const PathSegment iteratedSegment = iteratedPathSegments[r];
+			
+			//Other than with line line intersection, there can be another intersection even if one of the control points is shared
+			std::vector<double> intersectionCoefficients = Math::GetQuadraticCurveAndQuadraticCurveIntersectionCoefficients(iteratedSegment.controlPoints[0], iteratedSegment.controlPoints[1], iteratedSegment.controlPoints[2], otherSegment.controlPoints[0], otherSegment.controlPoints[1], otherSegment.controlPoints[2]);
+			if(intersectionCoefficients.size() > 0)
+			{
+				otherPathSegments.pop_back(); //Remove the segment that gets split
+				iteratedPathSegments.erase(iteratedPathSegments.begin() + r); //Remove the segment that gets split
+				
+				//Calculate points by inserting t into squared curve equation
+				Vector2 intersectionPoints[4];
+				Vector2 controlPoints[10];
+				
+				double t = intersectionCoefficients[0];
+				double s = 1.0 - t;
+				
+				intersectionPoints[0].x = s * s * iteratedSegment.controlPoints[0].x + 2.0 * t * s * iteratedSegment.controlPoints[1].x + t * t * iteratedSegment.controlPoints[2].x;
+				intersectionPoints[0].y = s * s * iteratedSegment.controlPoints[0].y + 2.0 * t * s * iteratedSegment.controlPoints[1].y + t * t * iteratedSegment.controlPoints[2].y;
+				
+				controlPoints[0].x = s * iteratedSegment.controlPoints[0].x + t * iteratedSegment.controlPoints[1].x;
+				controlPoints[0].y = s * iteratedSegment.controlPoints[0].y + t * iteratedSegment.controlPoints[1].y;
+				
+				controlPoints[1].x = s * iteratedSegment.controlPoints[1].x + t * iteratedSegment.controlPoints[2].x;
+				controlPoints[1].y = s * iteratedSegment.controlPoints[1].y + t * iteratedSegment.controlPoints[2].y;
+				
+				double o = intersectionCoefficients[1];
+				double v = 1.0 - o;
+				
+				controlPoints[4].x = v * otherSegment.controlPoints[0].x + o * otherSegment.controlPoints[1].x;
+				controlPoints[4].y = v * otherSegment.controlPoints[0].y + o * otherSegment.controlPoints[1].y;
+				
+				controlPoints[5].x = v * otherSegment.controlPoints[1].x + o * otherSegment.controlPoints[2].x;
+				controlPoints[5].y = v * otherSegment.controlPoints[1].y + o * otherSegment.controlPoints[2].y;
+				
+				for(int i = 2; i < intersectionCoefficients.size(); i += 2)
+				{
+					t = (intersectionCoefficients[i] - t) / (1.0 - t);
+					s = 1.0 - t;
+					
+					intersectionPoints[i/2].x = s * s * intersectionPoints[i/2-1].x + 2.0 * t * s * controlPoints[i/2].x + t * t * iteratedSegment.controlPoints[2].x;
+					intersectionPoints[i/2].y = s * s * intersectionPoints[i/2-1].y + 2.0 * t * s * controlPoints[i/2].y + t * t * iteratedSegment.controlPoints[2].y;
+					
+					controlPoints[i].x = s * controlPoints[i-1].x + t * iteratedSegment.controlPoints[2].x;
+					controlPoints[i].y = s * controlPoints[i-1].y + t * iteratedSegment.controlPoints[2].y;
+					
+					controlPoints[i-1].x = s * intersectionPoints[i/2-1].x + t * controlPoints[i-1].x;
+					controlPoints[i-1].y = s * intersectionPoints[i/2-1].y + t * controlPoints[i-1].y;
+					
+					
+					o = (intersectionCoefficients[i+1] - o) / (1.0 - o);
+					v = 1.0 - o;
+					
+					controlPoints[4+i].x = s * controlPoints[4+i-1].x + t * otherSegment.controlPoints[2].x;
+					controlPoints[4+i].y = s * controlPoints[4+i-1].y + t * otherSegment.controlPoints[2].y;
+					
+					controlPoints[4+i-1].x = s * intersectionPoints[4+i/2-1].x + t * controlPoints[4+i-1].x;
+					controlPoints[4+i-1].y = s * intersectionPoints[4+i/2-1].y + t * controlPoints[4+i-1].y;
+				}
+				
+				//Order intersection points along the second curve
+				int otherSegmentIntersectionIndices[5] = {-1, -1, -1, -1, -1};
+				int n = 0;
+				for(int i = 1; i < intersectionCoefficients.size(); i += 2)
+				{
+					for(int l = 0; l < 4; l++)
+					{
+						if(otherSegmentIntersectionIndices[l] < 0)
+						{
+							otherSegmentIntersectionIndices[l] = n;
+							break;
+						}
+						else
+						{
+							if(intersectionCoefficients[i] < intersectionCoefficients[otherSegmentIntersectionIndices[l]])
+							{
+								for(int m = 3; m > l; m--)
+								{
+									otherSegmentIntersectionIndices[m] = otherSegmentIntersectionIndices[m-1];
+								}
+								otherSegmentIntersectionIndices[l] = n;
+							}
+						}
+					}
+					
+					n += 1;
+				}
+				
+				
+				//Put together the new segments
+				PathSegment subdividedSegment;
+				subdividedSegment.type = PathSegment::TypeBezierQuadratic;
+				
+				int numberOfIntersections = intersectionCoefficients.size() / 2;
+				for(int i = 0; i <= numberOfIntersections; i++)
+				{
+					subdividedSegment.controlPoints.clear();
+					subdividedSegment.controlPoints.push_back(i==0?iteratedSegment.controlPoints[0]:intersectionPoints[i-1]);
+					subdividedSegment.controlPoints.push_back(controlPoints[i]);
+					subdividedSegment.controlPoints.push_back(i==numberOfIntersections?iteratedSegment.controlPoints[2]:intersectionPoints[i]);
+					
+					//Insert new segment into the list
+					iteratedPathSegments.insert(iteratedPathSegments.begin() + r, subdividedSegment);
+					if(i != numberOfIntersections) r += 1;
+					
+					
+					int intersectionIndex = otherSegmentIntersectionIndices[i];
+					int controlPointIndex = intersectionIndex==-1?numberOfIntersections:intersectionIndex;
+					subdividedSegment.controlPoints.clear();
+					subdividedSegment.controlPoints.push_back(intersectionIndex==0?otherSegment.controlPoints[0]:intersectionPoints[intersectionIndex-1]);
+					subdividedSegment.controlPoints.push_back(controlPoints[4 + controlPointIndex]);
+					subdividedSegment.controlPoints.push_back(intersectionIndex==numberOfIntersections?otherSegment.controlPoints[2]:intersectionPoints[intersectionIndex]);
+					
+					//Insert new segment into the list
+					otherPathSegments.push_back(subdividedSegment);
+				}
+			}
+		}
+	}
+
 
 	//Splits intersecting segments at the intersection point.
 	//ResolveOverlaps will get stuck on intersections otherwise and the resulting mesh will be broken if this isn't handled.
@@ -211,20 +487,29 @@ namespace KG
 				{
 					for(int i = 0; i < otherPath.segments.size(); i++)
 					{
+						std::vector<PathSegment> oldSegments;
+						oldSegments.push_back(otherPath.segments[i]);
+						
 						//Handle Line - Line segment intersection
 						if(segment.type == PathSegment::TypeLine && otherPath.segments[i].type == PathSegment::TypeLine)
 						{
-							std::vector<PathSegment> oldSegments;
-							oldSegments.push_back(otherPath.segments[i]);
 							ResolveLineLineIntersection(newSegments, oldSegments);
-							
-							//Update the old segment if it was split
-							if(oldSegments.size() > 1)
-							{
-								otherPath.segments.erase(otherPath.segments.begin() + i);
-								otherPath.segments.insert(otherPath.segments.begin() + i, oldSegments.begin(), oldSegments.end());
-								i += oldSegments.size() - 1;
-							}
+						}
+						else if((segment.type == PathSegment::TypeBezierQuadratic && otherPath.segments[i].type == PathSegment::TypeLine) || (segment.type == PathSegment::TypeLine && otherPath.segments[i].type == PathSegment::TypeBezierQuadratic))
+						{
+							ResolveQuadraticLineIntersection(newSegments, oldSegments);
+						}
+						else if(segment.type == PathSegment::TypeBezierQuadratic && otherPath.segments[i].type == PathSegment::TypeBezierQuadratic)
+						{
+							ResolveQuadraticQuadraticIntersection(newSegments, oldSegments);
+						}
+						
+						//Update the old segment if it was split
+						if(oldSegments.size() > 1)
+						{
+							otherPath.segments.erase(otherPath.segments.begin() + i);
+							otherPath.segments.insert(otherPath.segments.begin() + i, oldSegments.begin(), oldSegments.end());
+							i += oldSegments.size() - 1;
 						}
 					}
 				}
@@ -421,6 +706,7 @@ namespace KG
 					
 					if(direction != 0)
 					{
+						//TODO: Support rational quadratic curves to be able to exactly model an arc for example? This is somewhat explained in the Loop Blinn paper: https://www.microsoft.com/en-us/research/wp-content/uploads/2005/01/p1000-loop.pdf section 3.2
 						outsideMesh.vertices.push_back(segment.controlPoints[0].x);
 						outsideMesh.vertices.push_back(segment.controlPoints[0].y);
 						outsideMesh.vertices.push_back(0.0f);
