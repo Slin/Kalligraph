@@ -283,12 +283,12 @@ namespace KG
 		double vFA = (FA.x * CA.y - CA.x * FA.y) / den;
 		double wFA = (BA.x * FA.y - FA.x * BA.y) / den;
 		
-		double fx0 = 4.0 * (vDA - 2.0 * vEA + vFA);
-		double fx1 = -4.0 * (vDA + 2.0 * vEA);
-		double fx2 = 4.0 * vDA;
-		
+		double fx0 = (vDA - 2.0 * vEA + vFA);
+		double fx1 = (-2.0 * vDA + 2.0 * vEA);
+		double fx2 = vDA;
+
 		double fy0 = 4.0 * (wDA - 2.0 * wEA + wFA);
-		double fy1 = -4.0 * (wDA + 2.0 * wEA);
+		double fy1 = 4.0 * (-2.0 * wDA + 2.0 * wEA);
 		double fy2 = 4.0 * wDA;
 		
 		double gx0 = fx0 * fx0;
@@ -389,7 +389,12 @@ namespace KG
 			pos.y = (1.0 - t) * (1.0 - t) * A.y + (1.0 - t) * t * B.y + t * t * C.y;
 			
 			//Insert position into quadratic equation and solve for the interpolation factor (o1 and o2 as there are two possible results)
-			double sq = E.x * E.x - 4.0 * D.x * F.x + 4.0 * D.x * pos.x - 4.0 * E.x * pos.x + 4.0 * F.x * pos.x;
+			//x^2 + px + q = 0
+			double l = (D.x - 2.0 * E.x + F.x); //It's not a quadratic curve if l == 0, should probably check though...
+			double p = (-2.0 * D.x + 2.0 * E.x) / l;
+			double q = D.x / l;
+			
+			double sq = 0.25 * p * p - q;
 			if(sq < 0.0)
 			{
 				result.erase(result.begin() + i);
@@ -397,8 +402,9 @@ namespace KG
 				continue;
 			}
 			
-			//Claculate o1 and check if it's a valid point.
-			double o1 = (2.0 * D.x - E.x + std::sqrt(sq)) / (2.0 * (D.x - E.x + F.x));
+			//Calculate o1 and check if it's a valid point.
+			double root = std::sqrt(sq);
+			double o1 = - 0.5 * p + root;
 			if(o1 > 0.0 && o1 < 0.0)
 			{
 				double ypos = (1.0 - o1) * (1.0 - o1) * D.y + (1.0 - o1) * o1 * E.y + o1 * o1 * F.y;
@@ -412,7 +418,7 @@ namespace KG
 			}
 			
 			//Claculate o2 and check if it's a valid point.
-			double o2 = (-2.0 * D.x + E.x + std::sqrt(sq)) / (2.0 * (-D.x + E.x - F.x));
+			double o2 = - 0.5 * p - root;
 			if(o2 > 0.0 && o2 < 0.0)
 			{
 				double ypos = (1.0 - o2) * (1.0 - o2) * D.y + (1.0 - o2) * o2 * E.y + o2 * o2 * F.y;
@@ -443,6 +449,42 @@ namespace KG
 /*		X^2 = 4*Y
 		X = vDA * (1-t)^2 + 2 * vEA * (1-t) * t + vFA * t^2
 		Y = wDA * (1-t)^2 + 2 * wEA * (1-t) * t + wFA * t^2
+ 
+ 		X = vDA - 2 * vDA * t + vDA * t * t + 2 * vEA * t - 2 * vEA * t * t + vFA * t * t
+ 		X = (vDA - 2 * vEA + vFA) * (t * t) + (-2 * vDA + 2 * vEA) * t + vDA
+ 
+ 		X = fx0 * (t * t) + fx1 * t + fx2
+ 		Y = fy0 * (t * t) + fy1 * t + fy2
+ 		X^2 = Y
+ 
+ 		X^2 = (fx0 * t^2 + fx1 * t + fx2) * (fx0 * t^2 + fx1 * t + fx2)
+ 		X^2 = fx2 * fx2 + 2.0 * fx2 * fx1 * t + fx1 * fx1 * t^2 + 2.0 * fx0 * fx2 * t^2 + 2.0 * fx0 * fx1 * t^3 + fx0 * fx0 * t^4
+ 		X^2 = (fx0 * fx0) * t^4 + (2.0 * fx0 * fx1) * t^3 + (2.0 * fx0 * fx2 + fx1 * fx1) * t^2 + (2.0 * fx1 * fx2) * t + (fx2 * fx2)
+ 
+ 		gx0 * t^4 + gx1 * t^3 + gx2 * t^2 + gx3 * t + gx4 = fy0 * t^2 + fy1 * t + fy2
+ 		gx0 * t^4 + gx1 * t^3 + gx2 * t^2 + gx3 * t + gx4 - fy0 * t^2 - fy1 * t - fy2 = 0
+ 		gx0 * t^4 + gx1 * t^3 + (gx2 - fy0) * t^2 + (gx3 - fy1) * t + (gx4 - fy2) = 0
+ 		
+ 		gx0 * t^4 + gx1 * t^3 + h0 * t^2 + h1 * t + h2 = 0
+ 
+ 
+ 		double fx0 = (vDA - 2.0 * vEA + vFA);
+		double fx1 = (-2.0 * vDA + 2.0 * vEA);
+		double fx2 = vDA;
+ 
+ 		double fy0 = 4.0 * (wDA - 2.0 * wEA + wFA);
+		double fy1 = 4.0 * (-2.0 * wDA + 2.0 * wEA);
+		double fy2 = 4.0 * wDA;
+ 
+		double gx0 = fx0 * fx0;
+		double gx1 = 2.0 * fx0 * fx1;
+		double gx2 = (2.0 * fx0 * fx2 + fx1 * fx1);
+		double gx3 = 2.0 * fx1 * fx2;
+		double gx4 = fx2 * fx2;
+ 
+ 		double h0 = (gx2 - fy0);
+		double h1 = (gx3 - fy1);
+		double h2 = (gx4 - fy2);
 		
 		(vDA * (1-t)^2 + 2 * vEA * (1-t) * t + vFA * t^2) * (vDA * (1-t)^2 + 2 * vEA * (1-t) * t + vFA * t^2)*/
 	}
