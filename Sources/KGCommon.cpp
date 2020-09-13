@@ -232,8 +232,19 @@ namespace KG
 		else if(d > 0.0) //two possible intersections
 		{
 			double sd = std::sqrt(d);
-			t[0] = (-b - sd) / (2.0 * a);
-			t[1] = (-b + sd) / (2.0 * a);
+			double results[2];
+			results[0] = (-b - sd) / (2.0 * a);
+			results[1] = (-b + sd) / (2.0 * a);
+			if(results[0] < results[1])
+			{
+				t[0] = results[0];
+				t[1] = results[1];
+			}
+			else
+			{
+				t[0] = results[1];
+				t[1] = results[0];
+			}
 		}
 		else //one possible intersection
 		{
@@ -294,7 +305,7 @@ namespace KG
 		{
 			if(std::abs(roots[i].imag()) < std::numeric_limits<double>::epsilon())
 			{
-				if(roots[i].real() > 0.0 && roots[i].real() < 1.0)
+				if(roots[i].real() > 0.0000001 && roots[i].real() < 1.0 - 0.0000001)
 				{
 					result.push_back(roots[i].real());
 				}
@@ -408,7 +419,7 @@ namespace KG
 			//Calculate o1 and check if it's a valid point.
 			double root = std::sqrt(sq);
 			double o1 = -0.5 * p + root;
-			if(o1 > 0.0 && o1 < 1.0)
+			if(o1 > 0.0000001 && o1 < 1.0-0.0000001)
 			{
 				double ypos = (1.0 - o1) * (1.0 - o1) * D.y + 2.0 * (1.0 - o1) * o1 * E.y + o1 * o1 * F.y;
 				if(std::abs(pos.y - ypos) < 0.0001)//std::numeric_limits<double>::epsilon())
@@ -422,7 +433,7 @@ namespace KG
 			
 			//Claculate o2 and check if it's a valid point.
 			double o2 = -0.5 * p - root;
-			if(o2 > 0.0 && o2 < 1.0)
+			if(o2 > 0.0000001 && o2 < 1.0-0.0000001)
 			{
 				double ypos = (1.0 - o2) * (1.0 - o2) * D.y + 2.0 * (1.0 - o2) * o2 * E.y + o2 * o2 * F.y;
 				if(std::abs(pos.y - ypos) < 0.0001)//std::numeric_limits<double>::epsilon())

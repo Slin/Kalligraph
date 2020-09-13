@@ -428,6 +428,7 @@ namespace KG
 									otherSegmentIntersectionIndices[m] = otherSegmentIntersectionIndices[m-1];
 								}
 								otherSegmentIntersectionIndices[l] = n;
+								break;
 							}
 						}
 					}
@@ -455,9 +456,9 @@ namespace KG
 					int intersectionIndex = otherSegmentIntersectionIndices[i];
 					int controlPointIndex = intersectionIndex==-1?numberOfIntersections:intersectionIndex;
 					subdividedSegment.controlPoints.clear();
-					subdividedSegment.controlPoints.push_back(intersectionIndex==0?otherSegment.controlPoints[0]:intersectionPoints[otherSegmentIntersectionIndices[i-1]]);
+					subdividedSegment.controlPoints.push_back(i==0?otherSegment.controlPoints[0]:intersectionPoints[otherSegmentIntersectionIndices[i-1]]);
 					subdividedSegment.controlPoints.push_back(controlPoints[4 + controlPointIndex]);
-					subdividedSegment.controlPoints.push_back(controlPointIndex==numberOfIntersections?otherSegment.controlPoints[2]:intersectionPoints[intersectionIndex]);
+					subdividedSegment.controlPoints.push_back(i==numberOfIntersections?otherSegment.controlPoints[2]:intersectionPoints[intersectionIndex]);
 					
 					//Insert new segment into the list
 					otherPathSegments.push_back(subdividedSegment);
