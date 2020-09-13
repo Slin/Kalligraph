@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <vector>
 #include <limits>
+#include <complex>
 
 namespace KG
 {
@@ -94,6 +95,9 @@ namespace KG
 		static bool IsQuadraticCurveIntersectingLineSegment(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E);
 		static std::vector<double> GetQuadraticCurveAndLineSegmentIntersectionCoefficients(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E);
 		static std::vector<double> GetQuadraticCurveAndQuadraticCurveIntersectionCoefficients(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E, const Vector2 &F);
+		
+	private:
+		static std::vector<double> SolveQuarticEquation(std::complex<double> b, std::complex<double> c, std::complex<double> d, std::complex<double> e);
 	};
 }
 

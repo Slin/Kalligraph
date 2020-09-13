@@ -211,9 +211,14 @@ namespace KG
 		// solving for t
 		Vector2 lineDir = {E.x - D.x, E.y - D.y};
 		Vector2 alpha = {A.x + C.x - 2.0 * B.x, A.y + C.y - 2.0 * B.y};
+		double a = alpha.GetCrossProduct(lineDir);
+		if(std::abs(a) < std::numeric_limits<double>::epsilon()) //No intersection if a is 0
+		{
+			return result;
+		}
+		
 		Vector2 beta = {B.x - A.x, B.y - A.y};
 		Vector2 gamma = {A.x - D.x, A.y - D.y};
-		double a = alpha.GetCrossProduct(lineDir);
 		double b = beta.GetCrossProduct(lineDir) * 2.0;
 		double c = gamma.GetCrossProduct(lineDir);
 
@@ -254,129 +259,127 @@ namespace KG
 		return result;
 	}
 
+	static std::complex<double> complex_sqrt(const std::complex<double> & z)
+	{
+		return pow(z, 1. / 2.);
+	}
+
+	static std::complex<double> complex_cbrt(const std::complex<double> & z)
+	{
+		return pow(z, 1. / 3.);
+	}
+
+	std::vector<double> Math::SolveQuarticEquation(std::complex<double> b, std::complex<double> c, std::complex<double> d, std::complex<double> e)
+	{
+		//Find x for x^4 + b * x^3 + c * x^2 + d * x + e = 0
+		//This is taken from https://github.com/sidneycadot/quartic/blob/master/solve-quartic.cc
+		std::vector<double> result;
+
+		const std::complex<double> Q1 = c * c - 3. * b * d + 12. * e;
+		const std::complex<double> Q2 = 2. * c * c * c - 9. * b * c * d + 27. * d * d + 27. * b * b * e - 72. * c * e;
+		const std::complex<double> Q3 = 8. * b * c - 16. * d - 2. * b * b * b;
+		const std::complex<double> Q4 = 3. * b * b - 8. * c;
+
+		const std::complex<double> Q5 = complex_cbrt(Q2 / 2. + complex_sqrt(Q2 * Q2 / 4. - Q1 * Q1 * Q1));
+		const std::complex<double> Q6 = (Q1 / Q5 + Q5) / 3.;
+		const std::complex<double> Q7 = 2. * complex_sqrt(Q4 / 12. + Q6);
+
+		std::complex<double> roots[4];
+		roots[0] = (-b - Q7 - complex_sqrt(4. * Q4 / 6. - 4. * Q6 - Q3 / Q7)) / 4.;
+		roots[1] = (-b - Q7 + complex_sqrt(4. * Q4 / 6. - 4. * Q6 - Q3 / Q7)) / 4.;
+		roots[2] = (-b + Q7 - complex_sqrt(4. * Q4 / 6. - 4. * Q6 + Q3 / Q7)) / 4.;
+		roots[3] = (-b + Q7 + complex_sqrt(4. * Q4 / 6. - 4. * Q6 + Q3 / Q7)) / 4.;
+		
+		for(int i = 0; i < 4; i++)
+		{
+			if(std::abs(roots[i].imag()) < std::numeric_limits<double>::epsilon())
+			{
+				if(roots[i].real() > 0.0 && roots[i].real() < 1.0)
+				{
+					result.push_back(roots[i].real());
+				}
+			}
+		}
+		
+		return result;
+	}
+
 	std::vector<double> Math::GetQuadraticCurveAndQuadraticCurveIntersectionCoefficients(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E, const Vector2 &F)
 	{
-		//Based on https://stackoverflow.com/a/50142103
+		//This one is my own, as besides some comments that it's trivial to do I didn't find much info about it.
+		//Turns out that it's not hard, but it's easy to miss a term of accidentially flip a sign...
 		
 		std::vector<double> result;
 		
-		Vector2 P0 = A;
-		Vector2 P1 = {B.x - A.x, B.y - A.y};
-		Vector2 P2 = {A.x - 2.0 * B.x + C.x, A.y - 2.0 * B.y + C.y};
+		/*
+		I got these two equations from the curves and am looking for t. The only other unknown is o.
+		A.x * (1-t)^2 + 2 * B.x * (1-t) * t + C.x * t^2 = D.x * (1-o)^2 + 2 * E.x * (1-o) * o + F.x * o^2
+		A.y * (1-t)^2 + 2 * B.y * (1-t) * t + C.y * t^2 = D.y * (1-o)^2 + 2 * E.y * (1-o) * o + F.y * o^2
+		 
+		Substituting factors in front of the unknowns helps to keep things shorter.
+		 
+		1. I am solving the first equation for o:
+		(A.x - 2 * B.x + C.x) * t^2 + (-2 * A.x + 2 * B.x) * t + A.x = (D.x - 2 * E.x + F.x) * o^2 + (-2 * D.x + 2 * E.x) * o + D.x
+		<=> (-D.x + 2 * E.x - F.x) * o^2 + (2 * D.x - 2 * E.x) * o + [(A.x - 2 * B.x + C.x) * t^2 + (-2 * A.x + 2 * B.x) * t + A.x - D.x] = 0
+		after substitution
+		fx0 * o^2 + fx1 * o + (fx2 * t^2 + fx3 * t + fx4) = 0
+		=>
+		o1 = -0.5 * fx1/fx0 + sqrt[0.25 * (fx1/fx0)^2 - fx2/fx0 * t^2 - fx3/fx0 * t - fx4/fx0]
+		o2 = -0.5 * fx1/fx0 - sqrt[0.25 * (fx1/fx0)^2 - fx2/fx0 * t^2 - fx3/fx0 * t - fx4/fx0]
+		can by simplified to
+		o1 = gx0 + sqrt[gx1 - gx2 * t^2 - gx3 * t]
+		o2 = gx0 - sqrt[gx1 - gx2 * t^2 - gx3 * t]
+		 
+		2. Replacing o in the second equation with the results from previous step:
+		(A.y - 2 * B.y + C.y) * t^2 + (-2 * A.y + 2 * B.y) * t + (-D.y + 2 * E.y - F.y) * o^2 + (2 * D.y - 2 * E.y) * o + (A.y - D.y) = 0
+		after substitution
+		fy0 * t^2 + fy1 * t + fy2 * o^2 + fy3 * o + fy4 = 0
+		insert solutions for o and move things around a bit, I did a couple steps on paper here to calculate the o^2+o part (the +- that is there due to the two solutions for o)
+		(fy0 - fy2 * gx2) * t^2 + (fy1 - fy2 * gx3) * t + (fy3 * gx0 + fy2 * gx0^2 + fy2 * gx1 + fy4) + (fy3 + fy2 * gx0 * 2) * (+-sqrt[gx1 - gx2 * t^2 - gx3 * t]) = 0
+		after substitution
+		h0 * t^2 + h1 * t + h2 + h3 * (+-sqrt[gx1 - gx2 * t^2 - gx3 * t]) = 0
+		<=> h0 * t^2 + h1 * t + h2 = -h3 * (-+sqrt[gx1 - gx2 * t^2 - gx3 * t])
+		<=> (h0 * t^2 + h1 * t + h2)^2 = h3^2 * (gx1 - gx2 * t^2 - gx3 * t)
+		<=> h2^2 + 2 * h1 * h2 * t + h1^2 * t^2 + 2 * h0 * h2 * t^2 + 2 * h0 * h1 * t^3 + h0^2 * t^4 = h3^2 * gx1 - h3^2 * gx2 * t^2 - h3^2 * gx3 * t
+		<=> h2^2 + 2 * h1 * h2 * t + h1^2 * t^2 + 2 * h0 * h2 * t^2 + 2 * h0 * h1 * t^3 + h0^2 * t^4 - gx1 * h3^2 + gx3 * h3^2 * t + gx2 * h3^2 * t^2 = 0
+		<=> (h0^2) * t^4 + (2 * h0 * h1) * t^3 + (h1^2 + 2 * h0 * h2 + gx2 * h3^2) * t^2 + (2 * h1 * h2 + gx3 * h3^2) * t + (h2^2 - gx1 * h3^2) = 0
+		after substitution
+		t^4 + m1 * t^3 + m2 * t^2 + m3 * t + m4 = 0
+		 
+		m1, m2, m3 and m4 are then just put into the quartic solver and it's done :)
+		Subsitution is always with the variables below, replacing the parts in brackets.
+		*/
 		
-		//Calculate baryzentric coordinates for DEF inside P0P1P2 (https://en.wikipedia.org/wiki/Barycentric_coordinate_system)
-		Vector2 BA = {P1.x - P0.x, P1.y - P0.y};
-		Vector2 CA = {P2.x - P0.x, P2.y - P0.y};
-		double den = BA.x * CA.y - CA.x * BA.y;
-		
-		if(den == 0.0) return result; //Prevent division by 0, happens if P0, P1 and P2 are collinear should probably fall back to curve - line intersection?
-		
-		Vector2 DA = {D.x - P0.x, D.y - P0.y};
-		double vDA = (DA.x * CA.y - CA.x * DA.y) / den;
-		double wDA = (BA.x * DA.y - DA.x * BA.y) / den;
-		
-		Vector2 EA = {E.x - P0.x, E.y - P0.y};
-		double vEA = (EA.x * CA.y - CA.x * EA.y) / den;
-		double wEA = (BA.x * EA.y - EA.x * BA.y) / den;
-		
-		Vector2 FA = {F.x - P0.x, F.y - P0.y};
-		double vFA = (FA.x * CA.y - CA.x * FA.y) / den;
-		double wFA = (BA.x * FA.y - FA.x * BA.y) / den;
-		
-		double fx0 = (vDA - 2.0 * vEA + vFA);
-		double fx1 = (-2.0 * vDA + 2.0 * vEA);
-		double fx2 = vDA;
+		double fx0 = (-D.x + 2.0 * E.x - F.x);
+		double fx1 = (2.0 * D.x - 2.0 * E.x);
+		double fx2 = (A.x - 2.0 * B.x + C.x);
+		double fx3 = (-2.0 * A.x + 2.0 * B.x);
+		double fx4 = A.x - D.x;
 
-		double fy0 = 4.0 * (wDA - 2.0 * wEA + wFA);
-		double fy1 = 4.0 * (-2.0 * wDA + 2.0 * wEA);
-		double fy2 = 4.0 * wDA;
-		
-		double gx0 = fx0 * fx0;
-		double gx1 = 2.0 * fx0 * fx1;
-		double gx2 = (2.0 * fx0 * fx2 + fx1 * fx1);
-		double gx3 = 2.0 * fx1 * fx2;
-		double gx4 = fx2 * fx2;
-		
-		double h0 = (gx2 - fy0);
-		double h1 = (gx3 - fy1);
-		double h2 = (gx4 - fy2);
-		
-		//X = vDA * (1-t)^2 + 2 * vEA * (1-t) * t + vFA * t^2
-		//Y = wDA * (1-t)^2 + 2 * wEA * (1-t) * t + wFA * t^2
-		//X^2 = 4*Y
-		//These equations end up in
-		//gx0 * t^4 + gx1 * t^3 + h0 * t^2 - h1 * t - h2 = 0
-		//which is quartic equation that can be solved
-		//The following is based on https://github.com/sidneycadot/quartic/blob/master/solve-quartic.cc
-		double a = gx0;
-		double b = gx1 / a;
-		double c = h0 / a;
-		double d = h1 / a;
-		double e = h2 / a;
+		double fy0 = (A.y - 2.0 * B.y + C.y);
+		double fy1 = (-2.0 * A.y + 2.0 * B.y);
+		double fy2 = (-D.y + 2.0 * E.y - F.y);
+		double fy3 = (2.0 * D.y - 2.0 * E.y);
+		double fy4 = A.y - D.y;
 
-		double Q1 = c * c - 3.0 * b * d + 12.0 * e;
-		double Q2 = 2.0 * c * c * c - 9.0 * b * c * d + 27.0 * d * d + 27.0 * b * b * e - 72.0 * c * e;
-		double Q3 = 8.0 * b * c - 16.0 * d - 2.0 * b * b * b;
-		double Q4 = 3.0 * b * b - 8.0 * c;
+		double gx0 = -0.5 * fx1/fx0;
+		double gx1 = 0.25 * (fx1/fx0) * (fx1/fx0) - fx4/fx0;
+		double gx2 = fx2/fx0;
+		double gx3 = fx3/fx0;
 
-		double Q5Root = Q2 * Q2 / 4.0 - Q1 * Q1 * Q1;
-		if(Q5Root < 0.0)
-		{
-			return result;
-		}
-		
-		double Q5 = std::cbrt(Q2 / 2.0 + std::sqrt(Q5Root));
-		double Q6 = (Q1 / Q5 + Q5) / 3.0;
-		double Q7 = 2.0 * std::sqrt(Q4 / 12.0 + Q6);
-		
-		double den1 = 4.0 * Q4 / 6.0 - 4.0 * Q6 - Q3 / Q7;
-		double den2 = 4.0 * Q4 / 6.0 - 4.0 * Q6 + Q3 / Q7;
+		double h0 = (fy0 - fy2 * gx2);
+		double h1 = (fy1 - fy2 * gx3);
+		double h2 = fy3 * gx0 + fy2 * gx0 * gx0 + fy2 * gx1 + fy4;
+		double h3 = (fy3 + fy2 * gx0 * 2.0);
 
-		if(den1 == 0.0)
-		{
-			double solution = (-b - Q7) / 4.0;
-			if(solution > 0.0 && solution < 1.0)
-			{
-				result.push_back(solution);
-			}
-		}
-		if(den1 > 0.0)
-		{
-			double solution1 = (-b - Q7 - std::sqrt(den1)) / 4.0;
-			if(solution1 > 0.0 && solution1 < 1.0)
-			{
-				result.push_back(solution1);
-			}
-			
-			double solution2 = (-b - Q7 + std::sqrt(den1)) / 4.0;
-			if(solution2 > 0.0 && solution2 < 1.0)
-			{
-				result.push_back(solution2);
-			}
-		}
+		double m0 = h0 * h0;
+		double m1 = (2.0 * h0 * h1) / m0;
+		double m2 = (2.0 * h0 * h2 + h1 * h1 + gx2 * h3 * h3) / m0;
+		double m3 = (2.0 * h1 * h2 + gx3 * h3 * h3) / m0;
+		double m4 = (h2 * h2 - h3 * h3 * gx1) / m0;
 		
-		if(den2 == 0.0)
-		{
-			double solution = (-b + Q7) / 4.0;
-			if(solution > 0.0 && solution < 1.0)
-			{
-				result.push_back(solution);
-			}
-		}
-		if(den2 > 0.0)
-		{
-			double solution1 = (-b - Q7 - std::sqrt(den2)) / 4.0;
-			if(solution1 > 0.0 && solution1 < 1.0)
-			{
-				result.push_back(solution1);
-			}
-			
-			double solution2 = (-b - Q7 + std::sqrt(den2)) / 4.0;
-			if(solution2 > 0.0 && solution2 < 1.0)
-			{
-				result.push_back(solution2);
-			}
-		}
+		//Solve t^4 + m1 * t^3 + m2 * t^2 - m3 * t - m4 = 0 for t
+		result = SolveQuarticEquation(m1, m2, m3, m4);
 		
 		//Check if the results are also on DEF
 		for(int i = 0; i < result.size(); i++)
@@ -385,14 +388,14 @@ namespace KG
 			
 			//Get intersection position
 			Vector2 pos;
-			pos.x = (1.0 - t) * (1.0 - t) * A.x + (1.0 - t) * t * B.x + t * t * C.x;
-			pos.y = (1.0 - t) * (1.0 - t) * A.y + (1.0 - t) * t * B.y + t * t * C.y;
+			pos.x = (1.0 - t) * (1.0 - t) * A.x + 2.0 * (1.0 - t) * t * B.x + t * t * C.x;
+			pos.y = (1.0 - t) * (1.0 - t) * A.y + 2.0 * (1.0 - t) * t * B.y + t * t * C.y;
 			
 			//Insert position into quadratic equation and solve for the interpolation factor (o1 and o2 as there are two possible results)
-			//x^2 + px + q = 0
+			//lo^2 + po + q = 0
 			double l = (D.x - 2.0 * E.x + F.x); //It's not a quadratic curve if l == 0, should probably check though...
 			double p = (-2.0 * D.x + 2.0 * E.x) / l;
-			double q = D.x / l;
+			double q = (D.x - pos.x) / l;
 			
 			double sq = 0.25 * p * p - q;
 			if(sq < 0.0)
@@ -404,11 +407,11 @@ namespace KG
 			
 			//Calculate o1 and check if it's a valid point.
 			double root = std::sqrt(sq);
-			double o1 = - 0.5 * p + root;
-			if(o1 > 0.0 && o1 < 0.0)
+			double o1 = -0.5 * p + root;
+			if(o1 > 0.0 && o1 < 1.0)
 			{
-				double ypos = (1.0 - o1) * (1.0 - o1) * D.y + (1.0 - o1) * o1 * E.y + o1 * o1 * F.y;
-				if(std::abs(pos.y - ypos) < std::numeric_limits<double>::epsilon())
+				double ypos = (1.0 - o1) * (1.0 - o1) * D.y + 2.0 * (1.0 - o1) * o1 * E.y + o1 * o1 * F.y;
+				if(std::abs(pos.y - ypos) < 0.0001)//std::numeric_limits<double>::epsilon())
 				{
 					//If it's good, insert into result and stop here.
 					result.insert(result.begin() + i + 1, o1);
@@ -418,11 +421,11 @@ namespace KG
 			}
 			
 			//Claculate o2 and check if it's a valid point.
-			double o2 = - 0.5 * p - root;
-			if(o2 > 0.0 && o2 < 0.0)
+			double o2 = -0.5 * p - root;
+			if(o2 > 0.0 && o2 < 1.0)
 			{
-				double ypos = (1.0 - o2) * (1.0 - o2) * D.y + (1.0 - o2) * o2 * E.y + o2 * o2 * F.y;
-				if(std::abs(pos.y - ypos) < std::numeric_limits<double>::epsilon())
+				double ypos = (1.0 - o2) * (1.0 - o2) * D.y + 2.0 * (1.0 - o2) * o2 * E.y + o2 * o2 * F.y;
+				if(std::abs(pos.y - ypos) < 0.0001)//std::numeric_limits<double>::epsilon())
 				{
 					//If it's good, insert into result and stop here.
 					result.insert(result.begin() + i + 1, o2);
@@ -437,55 +440,5 @@ namespace KG
 		}
 		
 		return result;
-		
-		
-/*		x = gx0 * t^4 + gx1 * t^3 + gx2 * t^2 + gx3 * t + gx4;
-		y = fy0 * t^2 + fy1 * t + fy2
-		
-		gx0 * t^4 + gx1 * t^3 + gx2 * t^2 + gx3 * t + gx4 = fy0 * t^2 + fy1 * t + fy2
-		gx0 * t^4 + gx1 * t^3 + gx2 * t^2 + gx3 * t + gx4 - fy0 * t^2 - fy1 * t - fy2 = 0
-		*/
-		
-/*		X^2 = 4*Y
-		X = vDA * (1-t)^2 + 2 * vEA * (1-t) * t + vFA * t^2
-		Y = wDA * (1-t)^2 + 2 * wEA * (1-t) * t + wFA * t^2
- 
- 		X = vDA - 2 * vDA * t + vDA * t * t + 2 * vEA * t - 2 * vEA * t * t + vFA * t * t
- 		X = (vDA - 2 * vEA + vFA) * (t * t) + (-2 * vDA + 2 * vEA) * t + vDA
- 
- 		X = fx0 * (t * t) + fx1 * t + fx2
- 		Y = fy0 * (t * t) + fy1 * t + fy2
- 		X^2 = Y
- 
- 		X^2 = (fx0 * t^2 + fx1 * t + fx2) * (fx0 * t^2 + fx1 * t + fx2)
- 		X^2 = fx2 * fx2 + 2.0 * fx2 * fx1 * t + fx1 * fx1 * t^2 + 2.0 * fx0 * fx2 * t^2 + 2.0 * fx0 * fx1 * t^3 + fx0 * fx0 * t^4
- 		X^2 = (fx0 * fx0) * t^4 + (2.0 * fx0 * fx1) * t^3 + (2.0 * fx0 * fx2 + fx1 * fx1) * t^2 + (2.0 * fx1 * fx2) * t + (fx2 * fx2)
- 
- 		gx0 * t^4 + gx1 * t^3 + gx2 * t^2 + gx3 * t + gx4 = fy0 * t^2 + fy1 * t + fy2
- 		gx0 * t^4 + gx1 * t^3 + gx2 * t^2 + gx3 * t + gx4 - fy0 * t^2 - fy1 * t - fy2 = 0
- 		gx0 * t^4 + gx1 * t^3 + (gx2 - fy0) * t^2 + (gx3 - fy1) * t + (gx4 - fy2) = 0
- 		
- 		gx0 * t^4 + gx1 * t^3 + h0 * t^2 + h1 * t + h2 = 0
- 
- 
- 		double fx0 = (vDA - 2.0 * vEA + vFA);
-		double fx1 = (-2.0 * vDA + 2.0 * vEA);
-		double fx2 = vDA;
- 
- 		double fy0 = 4.0 * (wDA - 2.0 * wEA + wFA);
-		double fy1 = 4.0 * (-2.0 * wDA + 2.0 * wEA);
-		double fy2 = 4.0 * wDA;
- 
-		double gx0 = fx0 * fx0;
-		double gx1 = 2.0 * fx0 * fx1;
-		double gx2 = (2.0 * fx0 * fx2 + fx1 * fx1);
-		double gx3 = 2.0 * fx1 * fx2;
-		double gx4 = fx2 * fx2;
- 
- 		double h0 = (gx2 - fy0);
-		double h1 = (gx3 - fy1);
-		double h2 = (gx4 - fy2);
-		
-		(vDA * (1-t)^2 + 2 * vEA * (1-t) * t + vFA * t^2) * (vDA * (1-t)^2 + 2 * vEA * (1-t) * t + vFA * t^2)*/
 	}
 }

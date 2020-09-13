@@ -449,16 +449,15 @@ namespace KG
 					subdividedSegment.controlPoints.push_back(i==numberOfIntersections?iteratedSegment.controlPoints[2]:intersectionPoints[i]);
 					
 					//Insert new segment into the list
-					iteratedPathSegments.insert(iteratedPathSegments.begin() + r, subdividedSegment);
-					if(i != numberOfIntersections) r += 1;
+					iteratedPathSegments.insert(iteratedPathSegments.begin() + r++, subdividedSegment);
 					
 					
 					int intersectionIndex = otherSegmentIntersectionIndices[i];
 					int controlPointIndex = intersectionIndex==-1?numberOfIntersections:intersectionIndex;
 					subdividedSegment.controlPoints.clear();
-					subdividedSegment.controlPoints.push_back(intersectionIndex==0?otherSegment.controlPoints[0]:intersectionPoints[intersectionIndex-1]);
+					subdividedSegment.controlPoints.push_back(intersectionIndex==0?otherSegment.controlPoints[0]:intersectionPoints[otherSegmentIntersectionIndices[i-1]]);
 					subdividedSegment.controlPoints.push_back(controlPoints[4 + controlPointIndex]);
-					subdividedSegment.controlPoints.push_back(intersectionIndex==numberOfIntersections?otherSegment.controlPoints[2]:intersectionPoints[intersectionIndex]);
+					subdividedSegment.controlPoints.push_back(controlPointIndex==numberOfIntersections?otherSegment.controlPoints[2]:intersectionPoints[intersectionIndex]);
 					
 					//Insert new segment into the list
 					otherPathSegments.push_back(subdividedSegment);
