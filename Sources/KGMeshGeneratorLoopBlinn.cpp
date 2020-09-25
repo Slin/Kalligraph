@@ -659,7 +659,7 @@ namespace KG
 		PathCollection filteredPaths = DowngradeCubicSegments(paths);
 		filteredPaths = FilterDegenerateSegments(filteredPaths, 0.1);
 		filteredPaths = ResolveIntersections(filteredPaths);
-		filteredPaths = ResolveOverlaps(filteredPaths);
+//		filteredPaths = ResolveOverlaps(filteredPaths);
 		
 		TriangleMesh outsideMesh;
 		outsideMesh.features.push_back(TriangleMesh::VertexFeaturePosition);

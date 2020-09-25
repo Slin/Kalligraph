@@ -9,6 +9,7 @@
 #include <cmath>
 #include <limits>
 #include <iostream>
+#include <algorithm>
 
 namespace KG
 {
@@ -379,7 +380,7 @@ namespace KG
 		{
 			//The edge may have been cut into many new edges. Need to sort points along the edge (distance from first point, add last point to the list to not need extra handling)
 			newPoints.push_back(edge->sortedPoints[1]);
-			sort(newPoints.begin(), newPoints.end(), [edge](const SortedPoint *a, const SortedPoint *b) {
+			std::sort(newPoints.begin(), newPoints.end(), [edge](const SortedPoint *a, const SortedPoint *b) {
 				Vector2 distanceA;
 				distanceA.x = a->point.x - edge->sortedPoints[0]->point.x;
 				distanceA.y = a->point.y - edge->sortedPoints[0]->point.y;
