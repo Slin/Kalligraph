@@ -342,7 +342,7 @@ namespace KG
 	}
 
 
-	//Checks two quadratic curves intersect and splits them if they do.
+	//Checks if two quadratic curves intersect and splits them if they do.
 	void MeshGeneratorLoopBlinn::ResolveQuadraticQuadraticIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments)
 	{
 		const PathSegment otherSegment = otherPathSegments.back();
@@ -356,56 +356,6 @@ namespace KG
 			{
 				otherPathSegments.pop_back(); //Remove the segment that gets split
 				iteratedPathSegments.erase(iteratedPathSegments.begin() + r); //Remove the segment that gets split
-				
-				//Calculate points by inserting t into squared curve equation
-				Vector2 intersectionPoints[4];
-				Vector2 controlPoints[10];
-				
-				double t = intersectionCoefficients[0];
-				double s = 1.0 - t;
-				
-				intersectionPoints[0].x = s * s * iteratedSegment.controlPoints[0].x + 2.0 * t * s * iteratedSegment.controlPoints[1].x + t * t * iteratedSegment.controlPoints[2].x;
-				intersectionPoints[0].y = s * s * iteratedSegment.controlPoints[0].y + 2.0 * t * s * iteratedSegment.controlPoints[1].y + t * t * iteratedSegment.controlPoints[2].y;
-				
-				controlPoints[0].x = s * iteratedSegment.controlPoints[0].x + t * iteratedSegment.controlPoints[1].x;
-				controlPoints[0].y = s * iteratedSegment.controlPoints[0].y + t * iteratedSegment.controlPoints[1].y;
-				
-				controlPoints[1].x = s * iteratedSegment.controlPoints[1].x + t * iteratedSegment.controlPoints[2].x;
-				controlPoints[1].y = s * iteratedSegment.controlPoints[1].y + t * iteratedSegment.controlPoints[2].y;
-				
-				double o = intersectionCoefficients[1];
-				double v = 1.0 - o;
-				
-				controlPoints[4].x = v * otherSegment.controlPoints[0].x + o * otherSegment.controlPoints[1].x;
-				controlPoints[4].y = v * otherSegment.controlPoints[0].y + o * otherSegment.controlPoints[1].y;
-				
-				controlPoints[5].x = v * otherSegment.controlPoints[1].x + o * otherSegment.controlPoints[2].x;
-				controlPoints[5].y = v * otherSegment.controlPoints[1].y + o * otherSegment.controlPoints[2].y;
-				
-				for(int i = 2; i < intersectionCoefficients.size(); i += 2)
-				{
-					t = (intersectionCoefficients[i] - t) / (1.0 - t);
-					s = 1.0 - t;
-					
-					intersectionPoints[i/2].x = s * s * intersectionPoints[i/2-1].x + 2.0 * t * s * controlPoints[i/2].x + t * t * iteratedSegment.controlPoints[2].x;
-					intersectionPoints[i/2].y = s * s * intersectionPoints[i/2-1].y + 2.0 * t * s * controlPoints[i/2].y + t * t * iteratedSegment.controlPoints[2].y;
-					
-					controlPoints[i].x = s * controlPoints[i-1].x + t * iteratedSegment.controlPoints[2].x;
-					controlPoints[i].y = s * controlPoints[i-1].y + t * iteratedSegment.controlPoints[2].y;
-					
-					controlPoints[i-1].x = s * intersectionPoints[i/2-1].x + t * controlPoints[i-1].x;
-					controlPoints[i-1].y = s * intersectionPoints[i/2-1].y + t * controlPoints[i-1].y;
-					
-					
-					o = (intersectionCoefficients[i+1] - o) / (1.0 - o);
-					v = 1.0 - o;
-					
-					controlPoints[4+i].x = s * controlPoints[4+i-1].x + t * otherSegment.controlPoints[2].x;
-					controlPoints[4+i].y = s * controlPoints[4+i-1].y + t * otherSegment.controlPoints[2].y;
-					
-					controlPoints[4+i-1].x = s * intersectionPoints[4+i/2-1].x + t * controlPoints[4+i-1].x;
-					controlPoints[4+i-1].y = s * intersectionPoints[4+i/2-1].y + t * controlPoints[4+i-1].y;
-				}
 				
 				//Order intersection points along the second curve
 				int otherSegmentIntersectionIndices[5] = {-1, -1, -1, -1, -1};
@@ -436,6 +386,58 @@ namespace KG
 					n += 1;
 				}
 				
+				//Calculate points by inserting t into squared curve equation
+				Vector2 intersectionPoints[4];
+				Vector2 controlPoints[10];
+				
+				double t = intersectionCoefficients[0];
+				double s = 1.0 - t;
+				
+				intersectionPoints[0].x = s * s * iteratedSegment.controlPoints[0].x + 2.0 * t * s * iteratedSegment.controlPoints[1].x + t * t * iteratedSegment.controlPoints[2].x;
+				intersectionPoints[0].y = s * s * iteratedSegment.controlPoints[0].y + 2.0 * t * s * iteratedSegment.controlPoints[1].y + t * t * iteratedSegment.controlPoints[2].y;
+				
+				controlPoints[0].x = s * iteratedSegment.controlPoints[0].x + t * iteratedSegment.controlPoints[1].x;
+				controlPoints[0].y = s * iteratedSegment.controlPoints[0].y + t * iteratedSegment.controlPoints[1].y;
+				
+				controlPoints[1].x = s * iteratedSegment.controlPoints[1].x + t * iteratedSegment.controlPoints[2].x;
+				controlPoints[1].y = s * iteratedSegment.controlPoints[1].y + t * iteratedSegment.controlPoints[2].y;
+				
+				for(int i = 2; i < intersectionCoefficients.size(); i += 2)
+				{
+					t = (intersectionCoefficients[i] - t) / (1.0 - t);
+					s = 1.0 - t;
+					
+					intersectionPoints[i/2].x = s * s * intersectionPoints[i/2-1].x + 2.0 * t * s * controlPoints[i/2].x + t * t * iteratedSegment.controlPoints[2].x;
+					intersectionPoints[i/2].y = s * s * intersectionPoints[i/2-1].y + 2.0 * t * s * controlPoints[i/2].y + t * t * iteratedSegment.controlPoints[2].y;
+					
+					controlPoints[i].x = s * controlPoints[i-1].x + t * iteratedSegment.controlPoints[2].x;
+					controlPoints[i].y = s * controlPoints[i-1].y + t * iteratedSegment.controlPoints[2].y;
+					
+					controlPoints[i-1].x = s * intersectionPoints[i/2-1].x + t * controlPoints[i-1].x;
+					controlPoints[i-1].y = s * intersectionPoints[i/2-1].y + t * controlPoints[i-1].y;
+				}
+				
+				double o = intersectionCoefficients[otherSegmentIntersectionIndices[0] * 2 + 1];
+				double v = 1.0 - o;
+				
+				controlPoints[4].x = v * otherSegment.controlPoints[0].x + o * otherSegment.controlPoints[1].x;
+				controlPoints[4].y = v * otherSegment.controlPoints[0].y + o * otherSegment.controlPoints[1].y;
+				
+				controlPoints[5].x = v * otherSegment.controlPoints[1].x + o * otherSegment.controlPoints[2].x;
+				controlPoints[5].y = v * otherSegment.controlPoints[1].y + o * otherSegment.controlPoints[2].y;
+				
+				for(int i = 2; i < intersectionCoefficients.size(); i += 2)
+				{
+					o = (intersectionCoefficients[otherSegmentIntersectionIndices[i/2] * 2 + 1] - o) / (1.0 - o);
+					v = 1.0 - o;
+					
+					controlPoints[4+i].x = v * controlPoints[4+i-1].x + o * otherSegment.controlPoints[2].x;
+					controlPoints[4+i].y = v * controlPoints[4+i-1].y + o * otherSegment.controlPoints[2].y;
+					
+					controlPoints[4+i-1].x = v * intersectionPoints[otherSegmentIntersectionIndices[i/2 - 1]].x + o * controlPoints[4+i-1].x;
+					controlPoints[4+i-1].y = v * intersectionPoints[otherSegmentIntersectionIndices[i/2 - 1]].y + o * controlPoints[4+i-1].y;
+				}
+				
 				
 				//Put together the new segments
 				PathSegment subdividedSegment;
@@ -454,10 +456,9 @@ namespace KG
 					
 					
 					int intersectionIndex = otherSegmentIntersectionIndices[i];
-					int controlPointIndex = intersectionIndex==-1?numberOfIntersections:intersectionIndex;
 					subdividedSegment.controlPoints.clear();
 					subdividedSegment.controlPoints.push_back(i==0?otherSegment.controlPoints[0]:intersectionPoints[otherSegmentIntersectionIndices[i-1]]);
-					subdividedSegment.controlPoints.push_back(controlPoints[4 + controlPointIndex]);
+					subdividedSegment.controlPoints.push_back(controlPoints[4 + i]);
 					subdividedSegment.controlPoints.push_back(i==numberOfIntersections?otherSegment.controlPoints[2]:intersectionPoints[intersectionIndex]);
 					
 					//Insert new segment into the list

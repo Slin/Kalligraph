@@ -318,7 +318,7 @@ namespace KG
 	std::vector<double> Math::GetQuadraticCurveAndQuadraticCurveIntersectionCoefficients(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E, const Vector2 &F)
 	{
 		//This one is my own, as besides some comments that it's trivial to do I didn't find much info about it.
-		//Turns out that it's not hard, but it's easy to miss a term of accidentially flip a sign...
+		//Turns out that it's not hard, but it's easy to miss a term or accidentially flip a sign...
 		
 		std::vector<double> result;
 		
