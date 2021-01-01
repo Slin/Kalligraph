@@ -150,6 +150,95 @@ namespace KG
 		return result;
 	}
 
+	//Find winding order
+	//This assumes no intersections in any of the paths and will find the polygon winding order for each
+	const PathCollection MeshGeneratorLoopBlinn::FindWindingOrder(const PathCollection &paths)
+	{
+		PathCollection result;
+		
+		uint32_t segmentIndex = 0;
+		for(const Path &path : paths.paths)
+		{
+			result.paths.push_back(Path());
+			
+			for(const PathSegment &segment : path.segments)
+			{
+				Vector2 segmentCenter;
+				segmentCenter.x = 0;
+				segmentCenter.y = 0;
+				for(const Vector2 &point : segment.controlPoints)
+				{
+					segmentCenter.x += point.x;
+					segmentCenter.y += point.y;
+				}
+				segmentCenter.x /= segment.controlPoints.size();
+				segmentCenter.y /= segment.controlPoints.size();
+				
+				uint32_t otherSegmentIndex = 0;
+				uint32_t insideCounter = 0;
+				for(const Path &otherPath : paths.paths)
+				{
+					for(const PathSegment &otherSegment : otherPath.segments)
+					{
+						if(segmentIndex == otherSegmentIndex)
+						{
+							otherSegmentIndex += 1;
+							continue;
+						}
+						
+						int higherPointIndex = otherSegment.controlPoints[0].y > otherSegment.controlPoints.back().y? 0 : (otherSegment.controlPoints.size() - 1);
+						int lowerPointIndex = higherPointIndex == 0? (otherSegment.controlPoints.size() - 1) : 0;
+						
+						int rightPointIndex = otherSegment.controlPoints[0].x > otherSegment.controlPoints.back().x? 0 : (otherSegment.controlPoints.size() - 1);
+						int leftPointIndex = rightPointIndex == 0? (otherSegment.controlPoints.size() - 1) : 0;
+						
+						//Midpoint is not higher or lower than the edge and not to the right of it's right point
+						if(segmentCenter.y > otherSegment.controlPoints[lowerPointIndex].y && segmentCenter.y <= otherSegment.controlPoints[higherPointIndex].y && segmentCenter.x > otherSegment.controlPoints[leftPointIndex].x)
+						{
+/*							if(segmentCenter.x > otherSegment.controlPoints[rightPointIndex].x)
+							{
+								//If on the left of the left point of the edge, the check definitely hits it
+								insideCounter += 1;
+							}
+							else */if(Math::IsOnLine(otherSegment.controlPoints[higherPointIndex], otherSegment.controlPoints[lowerPointIndex], segmentCenter) == 1)
+							{
+								insideCounter += 1;
+							}
+						}
+						
+						otherSegmentIndex += 1;
+					}
+				}
+				
+				PathSegment newSegment = segment;
+				newSegment.isFilledOutside = (insideCounter % 2) == 0;
+				
+				if(segment.type == PathSegment::TypeBezierQuadratic)
+				{
+					int higherPointIndex = segment.controlPoints[0].y > segment.controlPoints.back().y? 0 : (segment.controlPoints.size() - 1);
+					int lowerPointIndex = higherPointIndex == 0? (segment.controlPoints.size() - 1) : 0;
+					if(Math::IsOnLine(segment.controlPoints[higherPointIndex], segment.controlPoints[lowerPointIndex], segment.controlPoints[1]) == 1)
+					{
+						newSegment.isFilledOutside = !newSegment.isFilledOutside;
+					}
+				}
+				
+				
+				result.paths.back().segments.push_back(newSegment);
+				
+				segmentIndex += 1;
+			}
+			
+			//If new path is empty, remove it
+			if(result.paths.back().segments.size() == 0)
+			{
+				result.paths.pop_back();
+			}
+		}
+		
+		return result;
+	}
+
 
 	//Checks if two line segments intersect and splits them if they do.
 	void MeshGeneratorLoopBlinn::ResolveLineLineIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments)
@@ -655,12 +744,13 @@ namespace KG
 	}
 
 	//Turns a path collection into a triangle mesh to render with a quadratic curve shader.
-	const TriangleMesh MeshGeneratorLoopBlinn::GetMeshForPathCollection(const PathCollection &paths, bool isCCW)
+	const TriangleMesh MeshGeneratorLoopBlinn::GetMeshForPathCollection(const PathCollection &paths)
 	{
 		PathCollection filteredPaths = DowngradeCubicSegments(paths);
 		filteredPaths = FilterDegenerateSegments(filteredPaths, 0.1);
 		filteredPaths = ResolveIntersections(filteredPaths);
-//		filteredPaths = ResolveOverlaps(filteredPaths);
+		filteredPaths = ResolveOverlaps(filteredPaths);
+		filteredPaths = FindWindingOrder(filteredPaths);
 		
 		TriangleMesh outsideMesh;
 		outsideMesh.features.push_back(TriangleMesh::VertexFeaturePosition);
@@ -678,8 +768,8 @@ namespace KG
 				if(!isNotFirstSegment)
 				{
 					outline.points.push_back(segment.controlPoints[0]);
+					isNotFirstSegment = true;
 				}
-				isNotFirstSegment = true;
 				
 				if(segment.type == PathSegment::TypeLine)
 				{
@@ -689,7 +779,7 @@ namespace KG
 				{
 					int8_t onLineResult = Math::IsOnLine(segment.controlPoints[0], segment.controlPoints[2], segment.controlPoints[1]);
 					int8_t direction = 0;
-					if((onLineResult < 0 && isCCW) || (onLineResult > 0 && !isCCW))
+					if(segment.isFilledOutside)
 					{
 						//Is outside curve
 						direction = 1;

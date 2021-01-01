@@ -18,10 +18,11 @@ namespace KG
 	public:
 		static const PathCollection DowngradeCubicSegments(const PathCollection &paths);
 		static const PathCollection FilterDegenerateSegments(const PathCollection &paths, double epsilon = std::numeric_limits<double>::epsilon());
+		static const PathCollection FindWindingOrder(const PathCollection &paths);
 		static const PathCollection ResolveIntersections(const PathCollection &paths);
 		static const PathCollection ResolveOverlaps(const PathCollection &paths);
 		
-		static const TriangleMesh GetMeshForPathCollection(const PathCollection &paths, bool isCCW);
+		static const TriangleMesh GetMeshForPathCollection(const PathCollection &paths);
 		
 	private:
 		static PathSegment GetQuadraticSegmentForCubic(const PathSegment &segment);

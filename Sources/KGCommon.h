@@ -53,6 +53,7 @@ namespace KG
 		};
 		
 		Type type;
+		bool isFilledOutside;
 		std::vector<Vector2> controlPoints;
 	};
 
