@@ -78,6 +78,18 @@ namespace KG
 		return IsCCW(A,C,D) != IsCCW(B,C,D) && IsCCW(A,B,C) != IsCCW(A,B,D);
 	}
 
+	bool Math::IsPointInTriangle(const Vector2 &point, const Vector2 &A, const Vector2 &B, const Vector2 &C)
+	{
+		if(IsCCW(A, B, C))
+		{
+			return (IsOnLine(A, B, point) >= 0 && IsOnLine(B, C, point) >= 0 && IsOnLine(C, A, point) >= 0);
+		}
+		else
+		{
+			return (IsOnLine(A, B, point) <= 0 && IsOnLine(B, C, point) <= 0 && IsOnLine(C, A, point) <= 0);
+		}
+	}
+
 	bool Math::AreTrianglesIntersecting(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E, const Vector2 &F)
 	{
 		//I found the idea of finding the separating axis in some comment online, and remembered this one having a good description: https://www.toptal.com/game/video-game-physics-part-ii-collision-detection-for-solid-objects

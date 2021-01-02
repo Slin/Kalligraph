@@ -125,12 +125,27 @@ namespace KG
 		{
 			Edge *edge = edges[i];
 			
-			//Every inside edge needs to be part of two triangles, otherwise there is a hole. Can't be more than two either though
+			//Every inside edge needs to be part of exactly two triangles, otherwise there is a hole.
 			if(edge->triangleCount >= 2) continue;
 			
 			for(SortedPoint *sortedPoint : sortedPoints)
 			{
 				if(sortedPoint == edge->sortedPoints[0] || sortedPoint == edge->sortedPoints[1]) continue;
+				
+				//Check if any point is inside the potential new triangle
+				bool invalidTriangle = false;
+				for(SortedPoint *point : sortedPoints)
+				{
+					if(point == edge->sortedPoints[0] || point == edge->sortedPoints[1] || point == sortedPoint) continue;
+					
+					if(Math::IsPointInTriangle(point->point, edge->sortedPoints[0]->point, edge->sortedPoints[1]->point, sortedPoint->point))
+					{
+						invalidTriangle = true;
+						break;
+					}
+				}
+				
+				if(invalidTriangle) continue;
 				
 				VisibilityResult visibilityResult = CanEdgeSeePoint(edge, sortedPoint, edges, originalEdgeCount);
 				if(!visibilityResult.isBlocked)
