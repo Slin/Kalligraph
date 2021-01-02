@@ -239,8 +239,8 @@ namespace KG
 		result.existingFirstEdge = nullptr;
 		result.existingSecondEdge = nullptr;
 		
-		//Stop if points are all along one line
-		if(Math::IsOnLine(edge->sortedPoints[0]->point, edge->sortedPoints[1]->point, point->point) == 0)
+		//Stop if points are all along one line, TODO: make that epsilon a define or maybe adjustable per polygon...
+		if(Math::IsOnLine(edge->sortedPoints[0]->point, edge->sortedPoints[1]->point, point->point, 0.0000000001) == 0)
 		{
 			return result;
 		}
