@@ -92,7 +92,7 @@ namespace KG
 		static bool AreLineSegmentsIntersecting(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D);
 		static bool IsPointInTriangle(const Vector2 &point, const Vector2 &A, const Vector2 &B, const Vector2 &C);
 		static bool AreTrianglesIntersecting(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E, const Vector2 &F);
-		static float GetSquaredTriangleArea(const Vector2 &A, const Vector2 &B, const Vector2 &C);
+		static double GetSquaredTriangleArea(const Vector2 &A, const Vector2 &B, const Vector2 &C);
 		static Vector2 GetIntersectionPoint(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D);
 		static bool IsQuadraticCurveIntersectingLineSegment(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E);
 		static std::vector<double> GetQuadraticCurveAndLineSegmentIntersectionCoefficients(const Vector2 &A, const Vector2 &B, const Vector2 &C, const Vector2 &D, const Vector2 &E);

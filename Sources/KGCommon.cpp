@@ -126,7 +126,7 @@ namespace KG
 		return true;
 	}
 
-	float Math::GetSquaredTriangleArea(const Vector2 &A, const Vector2 &B, const Vector2 &C)
+	double Math::GetSquaredTriangleArea(const Vector2 &A, const Vector2 &B, const Vector2 &C)
 	{
 		//Based on https://en.wikipedia.org/wiki/Heron%27s_formula
 		
@@ -134,12 +134,12 @@ namespace KG
 		Vector2 AB = {A.x - B.x, A.y - B.y};
 		Vector2 BC = {B.x - C.x, B.y - C.y};
 		Vector2 CA = {C.x - A.x, C.y - A.y};
-		float a2 = AB.GetDotProduct(AB);
-		float b2 = BC.GetDotProduct(BC);
-		float c2 = CA.GetDotProduct(CA);
+		double a2 = AB.GetDotProduct(AB);
+		double b2 = BC.GetDotProduct(BC);
+		double c2 = CA.GetDotProduct(CA);
 		
 		//Use herons formula to get the squared triangle area
-		float result = 2.0f*a2*b2 + 2.0f*a2*c2 + 2.0f*b2*c2 - a2*a2 - b2*b2 - c2*c2;
+		double result = 2.0*a2*b2 + 2.0*a2*c2 + 2.0*b2*c2 - a2*a2 - b2*b2 - c2*c2;
 		return 0.125 * result;
 	}
 

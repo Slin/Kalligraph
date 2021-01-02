@@ -20,7 +20,7 @@ namespace KG
 		static const PathCollection FilterDegenerateSegments(const PathCollection &paths, double epsilon = std::numeric_limits<double>::epsilon());
 		static const PathCollection FindWindingOrder(const PathCollection &paths);
 		static const PathCollection ResolveIntersections(const PathCollection &paths);
-		static const PathCollection ResolveOverlaps(const PathCollection &paths);
+		static const PathCollection ResolveOverlaps(const PathCollection &paths, double minTriangleArea = 0.001);
 		
 		static const TriangleMesh GetMeshForPathCollection(const PathCollection &paths);
 		
@@ -29,7 +29,7 @@ namespace KG
 		static void ResolveLineLineIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments);
 		static void ResolveQuadraticLineIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments);
 		static void ResolveQuadraticQuadraticIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments);
-		static void ResolveQuadraticQuadraticOverlap(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments);
+		static void ResolveQuadraticQuadraticOverlap(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments, double minTriangleArea);
 	};
 }
 
