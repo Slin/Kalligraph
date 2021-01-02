@@ -147,6 +147,23 @@ namespace KG
 				
 				if(invalidTriangle) continue;
 				
+				//Check if a triangle with the same points already exists
+				for(Triangle *triangle : triangles)
+				{
+					if((triangle->sortedPoints[0] == edge->sortedPoints[0] && triangle->sortedPoints[1] == edge->sortedPoints[1] && triangle->sortedPoints[2] == sortedPoint) ||
+					   (triangle->sortedPoints[1] == edge->sortedPoints[0] && triangle->sortedPoints[2] == edge->sortedPoints[1] && triangle->sortedPoints[0] == sortedPoint) ||
+					   (triangle->sortedPoints[2] == edge->sortedPoints[0] && triangle->sortedPoints[0] == edge->sortedPoints[1] && triangle->sortedPoints[1] == sortedPoint) ||
+					   (triangle->sortedPoints[1] == edge->sortedPoints[0] && triangle->sortedPoints[0] == edge->sortedPoints[1] && triangle->sortedPoints[2] == sortedPoint) ||
+					   (triangle->sortedPoints[0] == edge->sortedPoints[0] && triangle->sortedPoints[2] == edge->sortedPoints[1] && triangle->sortedPoints[1] == sortedPoint) ||
+					   (triangle->sortedPoints[2] == edge->sortedPoints[0] && triangle->sortedPoints[1] == edge->sortedPoints[1] && triangle->sortedPoints[0] == sortedPoint))
+					{
+						invalidTriangle = true;
+						break;
+					}
+				}
+				
+				if(invalidTriangle) continue;
+				
 				VisibilityResult visibilityResult = CanEdgeSeePoint(edge, sortedPoint, edges, originalEdgeCount);
 				if(!visibilityResult.isBlocked)
 				{
