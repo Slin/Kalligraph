@@ -4,7 +4,7 @@ Kalligraph is a utility library for rendering vector graphics on the GPU.
 
 It does the mesh generation for the technique presented by Loop and Blinn in 2005 [in GPU Gems 3](https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-25-rendering-vector-art-gpu) ([original paper](https://www.microsoft.com/en-us/research/wp-content/uploads/2005/01/p1000-loop.pdf), [presentation](https://www.youtube.com/watch?v=2OAPHn_YWGA)).
 
-**There is a patent on the part for cubic curves until 2026... US7564459B2**
+**There is a patent (US7564459B2) on using this for cubic curves until 2026...**
 **So for now this only does quadratic curves, which is enough for true type fonts and can be used to approximate cubic ones.**
 
 ### Features:

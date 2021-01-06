@@ -80,13 +80,14 @@ namespace KG
 
 	bool Math::IsPointInTriangle(const Vector2 &point, const Vector2 &A, const Vector2 &B, const Vector2 &C)
 	{
+		//Return true if point is inside ABC, false if outside or on the outline.
 		if(IsCCW(A, B, C))
 		{
-			return (IsOnLine(A, B, point) >= 0 && IsOnLine(B, C, point) >= 0 && IsOnLine(C, A, point) >= 0);
+			return (IsOnLine(A, B, point) > 0 && IsOnLine(B, C, point) > 0 && IsOnLine(C, A, point) > 0);
 		}
 		else
 		{
-			return (IsOnLine(A, B, point) <= 0 && IsOnLine(B, C, point) <= 0 && IsOnLine(C, A, point) <= 0);
+			return (IsOnLine(A, B, point) < 0 && IsOnLine(B, C, point) < 0 && IsOnLine(C, A, point) < 0);
 		}
 	}
 
