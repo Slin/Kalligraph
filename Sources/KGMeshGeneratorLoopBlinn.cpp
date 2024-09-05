@@ -620,7 +620,7 @@ namespace KG
 	//Checks if two quadratic segment triangles overlap (but the curves are not allowed to intersect!) and subdivides them until they don't.
 	void MeshGeneratorLoopBlinn::ResolveQuadraticQuadraticOverlap(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments, double minTriangleArea)
 	{
-		const PathSegment otherSegment = otherPathSegments.back();
+		PathSegment otherSegment = otherPathSegments.back();
 		for(int i = 0; i < iteratedPathSegments.size(); i++)
 		{
 			const PathSegment iteratedSegment = iteratedPathSegments[i];
