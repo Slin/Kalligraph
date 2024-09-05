@@ -658,6 +658,8 @@ namespace KG
 					
 					otherPathSegments.push_back(subdividedSegment[1]);
 					ResolveQuadraticQuadraticOverlap(iteratedPathSegments, otherPathSegments, minTriangleArea);
+
+					otherSegment = otherPathSegments.back();
 				}
 				else
 				{
