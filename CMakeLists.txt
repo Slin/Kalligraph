@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.4)
+cmake_minimum_required(VERSION 3.15.0)
 
 project(Kalligraph)
 set(CMAKE_OSX_DEPLOYMENT_TARGET 10.12)
