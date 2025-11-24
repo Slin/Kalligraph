@@ -9,7 +9,7 @@ option(KG_BUILD_LOOP_BLINN "Build with the Loop Blinn triangle mesh generator" O
 set(SOURCES )
 set(HEADERS )
 
-if(${KG_BUILD_LOOP_BLINN})
+if(KG_BUILD_LOOP_BLINN)
 	set(SOURCES ${SOURCES}
 		Sources/KGCommon.cpp
 		Sources/KGTriangulatorBruteForce.cpp
@@ -22,4 +22,15 @@ if(${KG_BUILD_LOOP_BLINN})
 endif()
 
 add_library(Kalligraph STATIC "${SOURCES}" "${HEADERS}")
-target_include_directories(Kalligraph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Sources)
+
+target_include_directories(Kalligraph PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Sources>)
+
+include(GNUInstallDirs)
+
+install(TARGETS Kalligraph
+  ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(FILES ${HEADERS}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Kalligraph)
