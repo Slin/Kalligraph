@@ -334,6 +334,12 @@ namespace KG
 		//Turns out that it's not hard, but it's easy to miss a term or accidentially flip a sign...
 		
 		std::vector<double> result;
+
+		//Interior points of a nondegenerate quadratic Bezier lie inside its control triangle.
+		//Disjoint triangle interiors cannot contain an interior curve intersection, even when
+		//the curves share an endpoint. Avoid feeding these endpoint roots to the quartic
+		//solver, where rounding can move them into the accepted parameter range.
+		if(IsOnLine(A, B, C) != 0 && IsOnLine(D, E, F) != 0 && !AreTrianglesIntersecting(A, B, C, D, E, F)) return result;
 		
 		/*
 		I got these two equations from the curves and am looking for t. The only other unknown is o.
