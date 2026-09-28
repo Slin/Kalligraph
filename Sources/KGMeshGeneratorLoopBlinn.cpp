@@ -247,9 +247,13 @@ namespace KG
 		for(int i = 0; i < iteratedPathSegments.size(); i++)
 		{
 			const PathSegment iteratedSegment = iteratedPathSegments[i];
-			
-			//Only intersect if they don't share a control point (these are all doubles, but an epsilon for the comparison should not be needed as they should be identical if shared)
-			if(otherSegment.controlPoints[0].x != iteratedSegment.controlPoints[0].x && otherSegment.controlPoints[0].x != iteratedSegment.controlPoints[1].x && otherSegment.controlPoints[1].x != iteratedSegment.controlPoints[0].x && otherSegment.controlPoints[1].x != iteratedSegment.controlPoints[1].x && otherSegment.controlPoints[0].y != iteratedSegment.controlPoints[0].y && otherSegment.controlPoints[0].y != iteratedSegment.controlPoints[1].y && otherSegment.controlPoints[1].y != iteratedSegment.controlPoints[0].y && otherSegment.controlPoints[1].y != iteratedSegment.controlPoints[1].y && Math::AreLineSegmentsIntersecting(otherSegment.controlPoints[0], otherSegment.controlPoints[1], iteratedSegment.controlPoints[0], iteratedSegment.controlPoints[1]))
+
+			// Sharing an x or y coordinate is not the same as sharing an endpoint.
+			bool sharesEndpoint = false;
+			for(const Vector2 &a : otherSegment.controlPoints)
+				for(const Vector2 &b : iteratedSegment.controlPoints)
+					if(a.x == b.x && a.y == b.y) sharesEndpoint = true;
+			if(!sharesEndpoint && Math::AreLineSegmentsIntersecting(otherSegment.controlPoints[0], otherSegment.controlPoints[1], iteratedSegment.controlPoints[0], iteratedSegment.controlPoints[1]))
 			{
 				otherPathSegments.pop_back(); //Remove the segment that gets split
 				iteratedPathSegments.erase(iteratedPathSegments.begin() + i); //Remove the segment that gets split
@@ -854,7 +858,8 @@ namespace KG
 			
 			polygon.outlines.push_back(outline);
 		}
-		
+
+		if(polygon.outlines.empty()) return outsideMesh;
 		TriangleMesh insideMesh = TriangulatorBruteForce::Triangulate(polygon);
 		uint32_t vertexIndexOffset = insideMesh.vertices.size() / 5;
 		insideMesh.vertices.insert(insideMesh.vertices.end(), outsideMesh.vertices.begin(), outsideMesh.vertices.end());
