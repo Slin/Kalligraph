@@ -618,7 +618,7 @@ namespace KG
 	}
 
 	//Checks if two quadratic segment triangles overlap (but the curves are not allowed to intersect!) and subdivides them until they don't.
-	void MeshGeneratorLoopBlinn::ResolveQuadraticQuadraticOverlap(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments, double minTriangleArea)
+	bool MeshGeneratorLoopBlinn::ResolveQuadraticQuadraticOverlap(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments, double minTriangleArea, size_t *remainingSplits, unsigned depth)
 	{
 		PathSegment otherSegment = otherPathSegments.back();
 		for(int i = 0; i < iteratedPathSegments.size(); i++)
@@ -630,10 +630,18 @@ namespace KG
 				double triangleSize[2];
 				triangleSize[0] = Math::GetSquaredTriangleArea(otherSegment.controlPoints[0], otherSegment.controlPoints[1], otherSegment.controlPoints[2]);
 				triangleSize[1] = Math::GetSquaredTriangleArea(iteratedSegment.controlPoints[0], iteratedSegment.controlPoints[1], iteratedSegment.controlPoints[2]);
-				
-				if(triangleSize[0] < minTriangleArea || triangleSize[1] < minTriangleArea)
+
+				if(remainingSplits)
 				{
-					return;
+					// Shared color patches must not overlap, regardless of their area.
+					// Degenerate triangles have no coverage; otherwise subdivide or fail.
+					if(triangleSize[0] == 0.0 || triangleSize[1] == 0.0) continue;
+					if(*remainingSplits == 0 || depth == 64) return false;
+					--*remainingSplits;
+				}
+				else if(triangleSize[0] < minTriangleArea || triangleSize[1] < minTriangleArea)
+				{
+					return true;
 				}
 				
 				if(triangleSize[0] > triangleSize[1])
@@ -649,15 +657,15 @@ namespace KG
 					subdividedSegment[0].controlPoints.push_back({0.25f * (otherSegment.controlPoints[0].x + otherSegment.controlPoints[2].x) + 0.5 * otherSegment.controlPoints[1].x, 0.25f * (otherSegment.controlPoints[0].y + otherSegment.controlPoints[2].y) + 0.5 * otherSegment.controlPoints[1].y});
 					
 					otherPathSegments.push_back(subdividedSegment[0]);
-					ResolveQuadraticQuadraticOverlap(iteratedPathSegments, otherPathSegments, minTriangleArea);
-					
+					if(!ResolveQuadraticQuadraticOverlap(iteratedPathSegments, otherPathSegments, minTriangleArea, remainingSplits, depth + 1)) return false;
+
 					subdividedSegment[1].type = PathSegment::TypeBezierQuadratic;
 					subdividedSegment[1].controlPoints.push_back(subdividedSegment[0].controlPoints[2]);
 					subdividedSegment[1].controlPoints.push_back({0.5f * (otherSegment.controlPoints[1].x + otherSegment.controlPoints[2].x), 0.5f * (otherSegment.controlPoints[1].y + otherSegment.controlPoints[2].y)});
 					subdividedSegment[1].controlPoints.push_back(otherSegment.controlPoints[2]);
 					
 					otherPathSegments.push_back(subdividedSegment[1]);
-					ResolveQuadraticQuadraticOverlap(iteratedPathSegments, otherPathSegments, minTriangleArea);
+					if(!ResolveQuadraticQuadraticOverlap(iteratedPathSegments, otherPathSegments, minTriangleArea, remainingSplits, depth + 1)) return false;
 
 					otherSegment = otherPathSegments.back();
 				}
@@ -675,7 +683,7 @@ namespace KG
 					
 					std::vector<PathSegment> newSegments0;
 					newSegments0.push_back(subdividedSegment[0]);
-					ResolveQuadraticQuadraticOverlap(otherPathSegments, newSegments0, minTriangleArea);
+					if(!ResolveQuadraticQuadraticOverlap(otherPathSegments, newSegments0, minTriangleArea, remainingSplits, depth + 1)) return false;
 					iteratedPathSegments.insert(iteratedPathSegments.begin() + i, newSegments0.begin(), newSegments0.end());
 					i += newSegments0.size();
 					
@@ -686,18 +694,24 @@ namespace KG
 					
 					std::vector<PathSegment> newSegments1;
 					newSegments1.push_back(subdividedSegment[1]);
-					ResolveQuadraticQuadraticOverlap(otherPathSegments, newSegments1, minTriangleArea);
+					if(!ResolveQuadraticQuadraticOverlap(otherPathSegments, newSegments1, minTriangleArea, remainingSplits, depth + 1)) return false;
 					iteratedPathSegments.insert(iteratedPathSegments.begin() + i, newSegments1.begin(), newSegments1.end());
 					i += newSegments1.size() - 1;
 				}
 			}
 		}
+		return true;
 	}
 
 	const PathCollection MeshGeneratorLoopBlinn::ResolveOverlaps(const PathCollection &paths, double minTriangleArea)
 	{
 		PathCollection result;
-		
+		ResolveOverlaps(paths, minTriangleArea, nullptr, result);
+		return result;
+	}
+
+	bool MeshGeneratorLoopBlinn::ResolveOverlaps(const PathCollection &paths, double minTriangleArea, size_t *remainingSplits, PathCollection &result)
+	{
 		for(const Path &path : paths.paths)
 		{
 			result.paths.push_back(Path());
@@ -723,8 +737,8 @@ namespace KG
 							{
 								std::vector<PathSegment> oldSegments;
 								oldSegments.push_back(otherPath.segments[i]);
-								ResolveQuadraticQuadraticOverlap(newSegments, oldSegments, minTriangleArea);
-								
+								if(!ResolveQuadraticQuadraticOverlap(newSegments, oldSegments, minTriangleArea, remainingSplits)) return false;
+
 								//Update the old segment with it's subdivisions if there are any
 								if(oldSegments.size() > 1)
 								{
@@ -751,7 +765,7 @@ namespace KG
 			}
 		}
 		
-		return result;
+		return true;
 	}
 
 	//Turns a path collection into a triangle mesh to render with a quadratic curve shader.

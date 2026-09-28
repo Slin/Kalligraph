@@ -16,6 +16,15 @@ namespace KG
 	class MeshGeneratorLoopBlinn
 	{
 	public:
+		enum class Status
+		{
+			Success,
+			InvalidArguments,
+			UnsupportedSegment,
+			SubdivisionLimit,
+			TopologyFailure
+		};
+
 		static const PathCollection DowngradeCubicSegments(const PathCollection &paths);
 		static const PathCollection FilterDegenerateSegments(const PathCollection &paths, double epsilon = std::numeric_limits<double>::epsilon());
 		static const PathCollection FindWindingOrder(const PathCollection &paths);
@@ -25,11 +34,12 @@ namespace KG
 		static const TriangleMesh GetMeshForPathCollection(const PathCollection &paths);
 		
 	private:
+		static bool ResolveOverlaps(const PathCollection &paths, double minTriangleArea, size_t *remainingSplits, PathCollection &result);
 		static PathSegment GetQuadraticSegmentForCubic(const PathSegment &segment);
 		static void ResolveLineLineIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments);
 		static void ResolveQuadraticLineIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments);
 		static void ResolveQuadraticQuadraticIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments);
-		static void ResolveQuadraticQuadraticOverlap(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments, double minTriangleArea);
+		static bool ResolveQuadraticQuadraticOverlap(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments, double minTriangleArea, size_t *remainingSplits, unsigned depth = 0);
 	};
 }
 
