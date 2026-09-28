@@ -76,7 +76,8 @@ namespace KG
 		{
 			VertexFeaturePosition,
 			VertexFeatureUV,
-			VertexFeatureColor
+			VertexFeatureColor,
+			VertexFeatureOutline
 		};
 		
 		std::vector<VertexFeature> features;

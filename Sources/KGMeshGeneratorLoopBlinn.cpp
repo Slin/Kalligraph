@@ -773,7 +773,7 @@ namespace KG
 	}
 
 	//Turns a path collection into a triangle mesh to render with a quadratic curve shader.
-	const TriangleMesh MeshGeneratorLoopBlinn::GetMeshForPathCollection(const PathCollection &paths)
+	TriangleMesh MeshGeneratorLoopBlinn::GetMeshForPathCollection(const PathCollection &paths)
 	{
 		PathCollection filteredPaths = DowngradeCubicSegments(paths);
 		filteredPaths = FilterDegenerateSegments(filteredPaths, 0.1);

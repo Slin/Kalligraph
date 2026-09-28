@@ -30,10 +30,13 @@ namespace KG
 		static const PathCollection FindWindingOrder(const PathCollection &paths);
 		static const PathCollection ResolveIntersections(const PathCollection &paths);
 		static const PathCollection ResolveOverlaps(const PathCollection &paths, double minTriangleArea = 0.001);
-		
-		static const TriangleMesh GetMeshForPathCollection(const PathCollection &paths);
-		
+
+		static TriangleMesh GetMeshForPathCollection(const PathCollection &paths);
+		static Status GetMeshForPathCollection(const PathCollection &paths, double outlineWidth, TriangleMesh &mesh);
+		static Status GetMeshForContours(const PathCollection &silhouette, const PathCollection &fill, TriangleMesh &mesh);
+
 	private:
+		friend class LoopBlinnOutlineBuilder;
 		static bool ResolveOverlaps(const PathCollection &paths, double minTriangleArea, size_t *remainingSplits, PathCollection &result);
 		static PathSegment GetQuadraticSegmentForCubic(const PathSegment &segment);
 		static void ResolveLineLineIntersection(std::vector<PathSegment> &iteratedPathSegments, std::vector<PathSegment> &otherPathSegments);

@@ -13,7 +13,8 @@ if(KG_BUILD_LOOP_BLINN)
 	set(SOURCES ${SOURCES}
 		Sources/KGCommon.cpp
 		Sources/KGTriangulatorBruteForce.cpp
-		Sources/KGMeshGeneratorLoopBlinn.cpp)
+		Sources/KGMeshGeneratorLoopBlinn.cpp
+		Sources/KGMeshGeneratorLoopBlinnOutline.cpp)
 
 	set(HEADERS ${HEADERS}
 		Sources/KGCommon.h
